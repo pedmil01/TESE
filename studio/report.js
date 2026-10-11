@@ -7,7 +7,7 @@ function reportSections(){
  const pair=(question,answer)=>({question,answer:text(answer),unanswered:!informationProvided(answer)});
  const hasText=value=>Boolean(String(value||'').trim());
  const enteredPair=(question,value)=>hasText(value)?[pair(question,value)]:[];
- const evidenceEntries=evidenceFields.filter(f=>hasText(requirements[f.key])).map(f=>pair(f.label,requirements[f.key]));
+ const evidenceEntries=evidenceFields.filter(f=>f.group!=='finance'&&hasText(requirements[f.key])).map(f=>pair(f.label,requirements[f.key]));
  const decisionEntries=[['rationale','Rationale / architecture notes'],['conditions','Conditions and evidence references'],['owner','Decision owner'],['platform','Platform / technology owner'],['operator','Technical operator / provider'],['authority','Approval authority'],['review','Review trigger / date']].flatMap(([key,label])=>enteredPair(label,d[key]));
  return [
   ['Preliminary assessment scope',assessmentNotice],
@@ -23,6 +23,12 @@ function reportSections(){
   ['Confirmed requirement conflicts',r.conflictDetails.length?r.conflictDetails.flatMap(diagnosticReportLines):['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
   ...(['placement','operating'].some(kind=>decisionDiagnostics(kind,r).some(item=>item.type==='unresolved'))?[['Unresolved decisions — causes and next steps',['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').flatMap(item=>diagnosticReportLines({...item,title:(kind==='placement'?'Placement: ':'Operating model: ')+item.title})))]]:[]),
   ...(typeof aiReportSection==='function'?[aiReportSection()]:[]),
+  ['Funding and procurement',[
+   pair('Financial readiness',fundingReadiness(requirements).label),
+   fundingReadiness(requirements).detail,
+   ...evidenceFields.filter(f=>f.group==='finance'&&hasText(requirements[f.key])).map(f=>pair(f.label,evidenceValue(f,requirements[f.key]))),
+   'Finance and procurement must validate the funding scope, recurring affordability, purchasing route and delivery schedule. A budget entry or AI recommendation does not authorize spending or deployment.'
+  ]],
   ['Recommendation basis',[
    ...(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm required inputs, restrictions and supported architecture.']),
    r.economicsBasis,
@@ -97,13 +103,15 @@ async function buildReportPdf(){
    page.drawText(line,{x:58,y,size,font,color});y-=leading;
   }
   y-=16;
-  if(y>60){page.drawLine({start:{x:46,y:y+5},end:{x:549,y:y+5},thickness:.4,color:rgb(.87,.90,.90)});}
+  if(y>60){page.drawLine({start:{x:46,y:y+5},end:{x:549,y:y+5},thickness:.4,color:rgb(.87,.90,.90)});y-=12;}
  }
  function writeNarrative(value){
   const fixedLabels=['Conflict','Placement unresolved','Operating model unresolved','Applied rules','Cause','Answers involved','What to review','Next step','Evidence needed'];
   const colon=value.indexOf(': ');
   if(colon>0&&fixedLabels.includes(value.slice(0,colon))){writeAnswer({question:value.slice(0,colon),answer:value.slice(colon+2)});return;}
   for(const paragraph of value.split(/\n\s*\n/)){
+   const paragraphLines=wrap(paragraph,11,font).length;
+   if(paragraphLines<=6&&y-paragraphLines*15.95-14<55)newPage();
    for(const line of paragraph.split('\n')){
     const heading=/^\d+\.\s+.{1,100}$/.test(line.trim())&&!/[.!?]$/.test(line.trim());
     if(heading&&y<100)newPage();

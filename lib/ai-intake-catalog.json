@@ -299,7 +299,7 @@
   {
     "field": "requirements.economics",
     "label": "What is the assessor’s lifecycle-economic conclusion?",
-    "hint": "Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Leave unconfirmed if no comparable estimates exist.",
+    "hint": "Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Leave unconfirmed if no comparable estimates exist. Record the ability to fund purchases and recurring payments separately in Funding and procurement below.",
     "options": {
       "cloud": "Assessor conclusion — cloud favored; supporting evidence required",
       "local": "Assessor conclusion — local favored; supporting evidence required",
@@ -493,6 +493,38 @@
     "field": "requirements.aiFlowDetails",
     "label": "AI data and context flows — details",
     "hint": "When AI is relevant, identify capabilities, prompts, data, telemetry, APIs, processing locations, support access and external dependencies. A processing-location answer alone is not a complete data-flow record."
+  },
+  {
+    "field": "requirements.fundingStatus",
+    "label": "Can the required purchases and service payments be funded?",
+    "hint": "Assess the proposed arrangement, including hardware, software, implementation and recurring services. Approval of funding is separate from architecture and deployment approval.",
+    "options": {
+      "approved": "Funding confirmed for the assessed scope and period",
+      "conditional": "Funding is partial or depends on approval",
+      "unfunded": "Required purchases or service payments cannot currently be funded",
+      "existing": "Existing funded capacity and contracts cover the requirements",
+      "unknown": "Funding has not been confirmed"
+    }
+  },
+  {
+    "field": "requirements.upfrontBudget",
+    "label": "What must be purchased upfront, and what budget is available?",
+    "hint": "List hardware / materials, software licences, installation, integration and migration. Record estimated cost and available capital budget, currency, funding source, budget owner, approval status and any shortfall. Leave unknown amounts unconfirmed."
+  },
+  {
+    "field": "requirements.recurringBudget",
+    "label": "Can the recurring service and operating costs be sustained?",
+    "hint": "Include subscriptions, cloud consumption, support, managed services, staffing, connectivity, energy, recovery and renewals. Record recurring budget, assessment period, cost growth, committed minimum spend, payment terms and funding gaps."
+  },
+  {
+    "field": "requirements.procurementConstraints",
+    "label": "What could delay or prevent buying the required materials and services?",
+    "hint": "Record purchasing approvals, tender / contracting lead times, supplier availability, delivery dates, licence and contract restrictions, payment or foreign-currency exposure and the required service start date. Distinguish confirmed blockers from unverified risks."
+  },
+  {
+    "field": "requirements.fundingPlan",
+    "label": "How will funding or procurement gaps be resolved, and by whom?",
+    "hint": "Record the Finance / procurement owner, evidence references, approvals needed and target dates. Consider reuse, phased acquisition or a funded service arrangement only if mandatory requirements and sustainable recurring costs are satisfied. This plan is not purchase approval."
   },
   {
     "field": "decision.rationale",

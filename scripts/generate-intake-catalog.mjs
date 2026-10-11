@@ -11,7 +11,7 @@ const catalog=vm.runInContext(`(()=>{
   add('application',key,key==='rto'?'RTO — hours':key==='rpo'?'RPO — minutes':key,h.hint);
  }
  for(const q of questions)add('requirements',q.key,q.label,q.hint,q.options);
- for(const q of evidenceFields)add('requirements',q.key,q.label,q.hint);
+ for(const q of evidenceFields)add('requirements',q.key,q.label,q.hint,q.options);
  for(const [key,h]of Object.entries(decisionHints))add('decision',key,key,h.hint);
  return entries;
 })()`,ctx);
