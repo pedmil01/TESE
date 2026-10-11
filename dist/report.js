@@ -6,19 +6,19 @@ function reportSections(){
  const text=value=>value||'Not provided';
  const pair=(question,answer)=>({question,answer:text(answer),unanswered:!answer||answer==='Not provided'});
  const gaps=[...r.missing];
- ['id','name','owner'].forEach(key=>{if(!a[key])gaps.push('Application '+key+' is missing.');});
+ ['id','name','owner'].forEach(key=>{if(!a[key])gaps.push('Solution '+key+' is missing.');});
  if(!a.classification||a.classification==='unknown')gaps.push('Confirm institutional data classification.');
  if(a.classification==='custom'&&!a.classificationNotes)gaps.push('Specify the institutional classification label.');
  return [
  ['Decision summary',[
-  'Application: '+text(a.name)+' | ID: '+text(a.id),
+  'Solution: '+text(a.name)+' | ID: '+text(a.id),
   'Institutional service owner: '+text(a.owner),
   'Status: '+r.status,
   'Compatible delivery model: '+r.compatible,
   'Proposed placement: '+(zone?zone.name:r.indicatedId?'EXCLUDED — '+model.zones.find(z=>z.id===r.indicatedId)?.name:'Unresolved - more information required'),
   'Proposed operating model: '+(op?op.name:'Unresolved - more information required'),
   'Supplemental support: '+r.support,
-  'This report captures a provisional architecture proposal from the application requirements. It does not assess or certify eligibility. Mandatory controls and evidence must be validated through institutional review before approval.'
+  'This report captures a provisional architecture proposal from the solution requirements. It does not assess or certify eligibility. Mandatory controls and evidence must be validated through institutional review before approval.'
  ]],
 
  ['Why this placement?',r.reasons.length?r.reasons:['No placement can yet be proposed. Review the missing information and constraints below.']],
@@ -29,7 +29,7 @@ function reportSections(){
   '3. Delivery alone never assigns a placement. Cloud permission, local execution, proximity, hardware and hybrid architecture must be confirmed first. Software delivery and supported architecture then determine the compatible service model: SaaS, CaaS, specialized AI infrastructure, managed platforms or server-based hosting.',
   '4. Where location is flexible, stated lifecycle cost evidence can favor local or cloud execution. Elastic demand supports a provisional cloud proposal. Without a differentiator, location remains unresolved.',
   '5. Operational control, internal capability and permitted sourcing are assessed separately. SaaS is provider-operated; internal execution, co-management or managed operations depend on those answers.',
-  'The application profile establishes criticality, financial / systemic impact and explicit execution / sovereignty restrictions. Mandatory local restrictions exclude external cloud. High criticality strengthens F1 and recovery gates; the thesis does not impose a universal criticality-based cloud ban.'
+  'The solution profile establishes criticality, financial / systemic impact and explicit execution / sovereignty restrictions. Mandatory local restrictions exclude external cloud. High criticality strengthens F1 and recovery gates; the thesis does not impose a universal criticality-based cloud ban.'
  ]],
  ['Assessment questions and answers',[...new Set(questions.map(q=>q.group))].flatMap(group=>questions.filter(q=>q.group===group)).map((q,i)=>({question:'Q'+(i+1)+'. '+q.label,answer:response(q),group:q.group,unanswered:questionApplies(q)&&(!state.requirements[q.key]||state.requirements[q.key]==='unknown')}))],
  ['Infrastructure security implications',r.cyberChecks],
@@ -40,7 +40,7 @@ function reportSections(){
   'Verify product support, licensing, operational interfaces and responsibility boundaries.',
   'Confirm risk-adjusted lifecycle costs; cost cannot override mandatory controls.'
  ]],
- ['Application profile',[
+ ['Solution profile',[
   pair('Purpose and institutional capability',a.capability),
   ...Object.keys(profileOptions).map(key=>({...pair(profileOptions[key].label,option(key)),unanswered:!a[key]||a[key]==='unknown'})),
   pair('Data labels and handling restrictions',a.classificationNotes),
@@ -56,7 +56,7 @@ function reportSections(){
  ]],
  ['Framework basis and limitations',[
   'Governing source: Tese_Pedro_Milagres_Silva_2026_v5.1(1).docx; §3.2.1 placement and mandatory eligibility, §3.3.1 sovereignty, §3.3.2 recovery, §3.4 AI infrastructure, embedded AI and A0–A4 operations, and Appendices B.2–B.7. The greenfield workbook v4 supplies the supporting catalog.',
-  'The application-led recommendation rules are a decision-support interpretation of the framework, not validated thresholds from the workbook candidate-scoring matrix.',
+  'The solution-led recommendation rules are a decision-support interpretation of the framework, not validated thresholds from the workbook candidate-scoring matrix.',
   'Answers are supplied by the assessor. This report does not independently verify software support, provider evidence, compliance, tested recovery or real operational effectiveness.',
   'Suggested sizing text is a requirements-gathering aid. Unknown values remain unconfirmed and must not be treated as approved capacity targets.'
  ]]
@@ -67,7 +67,7 @@ async function buildReportPdf(){
  const doc=await PDFDocument.create();doc.registerFontkit(fontkit);
  const fontData=await Promise.all(['DejaVuSans.ttf','DejaVuSans-Bold.ttf'].map(async name=>{const response=await fetch('vendor/'+name);if(!response.ok)throw Error('Report font unavailable');return response.arrayBuffer();}));
  const font=await doc.embedFont(fontData[0],{subset:true}),bold=await doc.embedFont(fontData[1],{subset:true});
- doc.setTitle('Workload Placement - '+(state.application.name||'Application assessment'));
+ doc.setTitle('Workload Placement - '+(state.application.name||'Solution Assessment'));
  doc.setSubject('Placement and operating-model reasoning');doc.setCreator('Workload Placement Studio');
  const clean=s=>Array.from(String(s).replace(/[\u2010-\u2015]/g,'-').replace(/→/g,' -> ').replace(/≤/g,'<=').replace(/≥/g,'>=')).map(c=>{try{font.encodeText(c);return c}catch{return '?'}}).join('');
  const pages=[];let page,y;
