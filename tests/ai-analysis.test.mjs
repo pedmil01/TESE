@@ -46,7 +46,7 @@ test('changing any optional text invalidates the AI report; HTML-like model cont
  assert.equal(vm.runInContext('aiCurrent()',context),false);
  assert.equal(vm.runInContext("JSON.stringify(reportSections()).includes('<script>alert(1)</script> Preliminary advice.')",context),false);
  assert.match(vm.runInContext('JSON.stringify(aiReportSection())',context),/omitted/);
- assert.match(fs.readFileSync('studio/ai-analysis.js','utf8'),/event.origin!==aiGithubOrigin\|\|event.source!==window.opener/);
+ assert.match(fs.readFileSync('studio/ai-analysis.js','utf8'),/event.origin!==aiGithubOrigin\|\|event.source!==window.parent/);
 });
 
 test('short analysis is preserved and browser acceptance enforces the 700-word cap',()=>{

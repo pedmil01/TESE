@@ -83,7 +83,7 @@ for(const authority of ['A3','A4']){
  assert.ok(test.html.includes('Recorded intent does not authorize execution'));
  assert.ok(test.r.checks.some(x=>x.startsWith(authority+' —')));
  assert.ok(test.r.outstanding.some(x=>x.category==='AI authority and data flows'));
- assert.ok(JSON.stringify(test.sections).includes('Intended AI authority: '+authority));
+ assert.ok(test.sections.find(([heading])=>heading==='Recommendation basis')[1].some(item=>item.question==='Intended AI authority'&&item.answer.startsWith(authority))); 
 }
 for(const input of [
  {...base,delivery:'saas',local:'yes'},
