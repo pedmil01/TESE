@@ -204,6 +204,20 @@ function recommendation(r=state.requirements){
    }
   }
  }
+ const cloudExitRequired=Boolean(id&&['Cloud','Hybrid'].includes(model.zones.find(z=>z.id===id)?.location));
+ const cloudExit=cloudExitAssessment(r,cloudExitRequired);
+ if(cloudExitRequired){
+  appliedRules.push('C3');
+  if(r.exitStatus==='blocked'){
+   const detail=cloudExit.detail;issues.push(detail);
+   const item=decisionDiagnostic(['placement'],'Cloud arrangement vs impossible provider exit',detail,'Document a feasible route to retrieve all required data and restore, migrate or replace the service at a supported destination. Resolve data-access, technical, contractual or funding blockers with the service and procurement owners; otherwise reassess an arrangement with a feasible exit.',['delivery','cloud','hybrid'],[],r,evidenceFields.filter(f=>f.group==='exit').map(f=>evidenceTarget(f.key)));
+   item.answers.push(diagnosticReference(evidenceTarget('exitStatus'),r));
+   conflictDetails.push({...item,type:'conflict'});id=null;
+  }else if(cloudExit.missing.length){
+   placementMissing.push(...cloudExit.missing.map(f=>f.label));id=null;
+  }
+  checks.push('Cloud exit — validate complete data export / independent access, a supported restore, migration or replacement route, destination capacity and controls, timing, costs, contract rights, owners and test evidence. A backup confined to the same provider does not establish exit.');
+ }
  const placementConflicts=[...issues];
  const opInputsKnown=['control','skills','sourcing'].every(known);
  const opConflictStart=issues.length;
@@ -252,10 +266,10 @@ function recommendation(r=state.requirements){
  checks.push('Finance and procurement must validate upfront purchase funding, sustainable recurring payments, supplier / contract terms and acquisition lead times. A lower lifecycle cost does not establish affordability or purchasing approval.');
  checks.push(...mandatoryGates.map(g=>'Before institutional approval: '+g.label+'. '+g.hint));
  if(placementConflicts.length)id=null;
- const outstanding=outstandingRequirements(r,placementMissing);
+ const outstanding=outstandingRequirements(r,placementMissing,cloudExitRequired);
  const economicsBasis=economicBasis(r,elasticityBased);
  const aiStatus=aiNotApplicable(r)?'Not applicable — responses establish that no relevant AI capability is involved':aiInScope(r)?'Relevant AI capability identified; intended authority and controls require specialist validation':'Unresolved — AI applicability has not been established';
- return {id,indicatedId:id,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id?'UNRESOLVED':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
+ return {id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id?'UNRESOLVED':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
 }
 function go(i){hideAcronymTip();if(location.hash.startsWith('#acronym'))history.replaceState(null,'',location.pathname+location.search);step=i;render();window.scrollTo(0,0)}
 function answer(key,v){state.requirements[key]=v;if(key==='criticality')state.application.criticality=v;if(key==='demand')state.application.demandProfile=v;if(key==='hardware')state.application.hardwareNeed=v;syncSuggestedNeeds();if(step===1){syncAiQuestions();hideStatusTip();document.getElementById('live-proposal-content').innerHTML=proposal();enhanceAcronyms(document.getElementById('live-proposal-content'));const remaining=document.getElementById('remaining-requirements-notice');if(remaining)remaining.innerHTML=remainingRequirementsHtml();document.getElementById('progress').textContent=assessmentProgress().characterized;}else render()}
@@ -359,7 +373,7 @@ function assessmentQuestionHtml(q){
 }
 function assessment(){
  const groups=[...new Set(questions.map(q=>q.group))];
- return `${requirementLegend()}<div class="grid assessment-grid"><div>${groups.map(g=>`<div class="card"><h2>${g}</h2>${questions.filter(q=>q.group===g).map(assessmentQuestionHtml).join('')}${g==='Economics & capacity'?evidenceInputs('economics')+fundingInputs():g==='Operating capability'?evidenceInputs('operations'):g==='AI capabilities & operational authority'?`<div class="meta" id="ai-question-context" aria-live="polite" aria-atomic="true">${aiQuestionContext()}</div><div id="ai-flow-evidence" ${aiInScope()?'':'hidden'}>${evidenceInputs('ai')}</div>`:''}</div>`).join('')}<div class="actions"><button class="primary" onclick="go(2)">View recommendation</button></div></div><div class="live-proposal-column"><section class="card accent live-proposal-panel" aria-labelledby="live-proposal-label"><span class="eyebrow" id="live-proposal-label">LIVE PROPOSAL</span>${remainingRequirementsNotice()}<div id="live-proposal-content" aria-live="polite" aria-atomic="true">${proposal()}</div></section><div class="notice live-proposal-note">Choose “Not confirmed” when evidence is missing. The profile’s mandatory local-execution and sovereignty restrictions exclude external cloud. Criticality and sensitivity determine required assurance. The proposal requires specialist validation and institutional approval.</div></div></div>`;
+ return `${requirementLegend()}<div class="grid assessment-grid"><div>${groups.map(g=>`<div class="card"><h2>${g}</h2>${questions.filter(q=>q.group===g).map(assessmentQuestionHtml).join('')}${g==='Control & sovereignty'?cloudExitInputs():g==='Economics & capacity'?evidenceInputs('economics')+fundingInputs():g==='Operating capability'?evidenceInputs('operations'):g==='AI capabilities & operational authority'?`<div class="meta" id="ai-question-context" aria-live="polite" aria-atomic="true">${aiQuestionContext()}</div><div id="ai-flow-evidence" ${aiInScope()?'':'hidden'}>${evidenceInputs('ai')}</div>`:''}</div>`).join('')}<div class="actions"><button class="primary" onclick="go(2)">View recommendation</button></div></div><div class="live-proposal-column"><section class="card accent live-proposal-panel" aria-labelledby="live-proposal-label"><span class="eyebrow" id="live-proposal-label">LIVE PROPOSAL</span>${remainingRequirementsNotice()}<div id="live-proposal-content" aria-live="polite" aria-atomic="true">${proposal()}</div></section><div class="notice live-proposal-note">Choose “Not confirmed” when evidence is missing. The profile’s mandatory local-execution and sovereignty restrictions exclude external cloud. Criticality and sensitivity determine required assurance. The proposal requires specialist validation and institutional approval.</div></div></div>`;
 }
 function proposal(){
  const r=recommendation();
@@ -367,7 +381,7 @@ function proposal(){
  <p class="${r.elasticityBased?'economic-qualification':'meta'}">${esc(r.economicsBasis)}</p>
  ${r.intendedAiAuthority?`<p class="notice warning">Intended AI authority: ${esc(r.intendedAiAuthority)}. Recorded intent does not authorize execution. ${r.intendedAiAuthority==='A3'?'Explicit approval is required for each executed action.':r.intendedAiAuthority==='A4'?'An approved permitted-action boundary, least privilege, human oversight, auditability and effective suspension / recovery are required.':'Production changes remain human decisions.'}</p>`:''}
  ${outstandingHtml(r)}
- ${fundingHtml()}<section class="recommendation-basis"><h3>Recommendation basis</h3>${list(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm the required inputs and supported architecture.'])}<p class="meta"><strong>Compatible delivery:</strong> ${esc(r.compatible)}</p><p class="meta"><strong>AI applicability:</strong> ${esc(r.aiStatus)}</p><p class="meta"><strong>Applied rules:</strong> ${r.appliedRules.map(esc).join(', ')} · <a href="#framework" onclick="event.preventDefault();go(3)">Recommendation method</a></p></section>
+ ${cloudExitHtml(r)}${fundingHtml()}<section class="recommendation-basis"><h3>Recommendation basis</h3>${list(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm the required inputs and supported architecture.'])}<p class="meta"><strong>Compatible delivery:</strong> ${esc(r.compatible)}</p><p class="meta"><strong>AI applicability:</strong> ${esc(r.aiStatus)}</p><p class="meta"><strong>Applied rules:</strong> ${r.appliedRules.map(esc).join(', ')} · <a href="#framework" onclick="event.preventDefault();go(3)">Recommendation method</a></p></section>
  `;
 }
 function list(items){return items.length?`<ul class="help-list">${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="meta">No additional item identified from these answers.</p>'}

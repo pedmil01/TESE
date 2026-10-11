@@ -17,7 +17,12 @@ const evidenceFields=[
  {key:'upfrontBudget',group:'finance',label:'What must be purchased upfront, and what budget is available?',hint:'List hardware / materials, software licences, installation, integration and migration. Record estimated cost and available capital budget, currency, funding source, budget owner, approval status and any shortfall. Leave unknown amounts unconfirmed.'},
  {key:'recurringBudget',group:'finance',label:'Can the recurring service and operating costs be sustained?',hint:'Include subscriptions, cloud consumption, support, managed services, staffing, connectivity, energy, recovery and renewals. Record recurring budget, assessment period, cost growth, committed minimum spend, payment terms and funding gaps.'},
  {key:'procurementConstraints',group:'finance',label:'What could delay or prevent buying the required materials and services?',hint:'Record purchasing approvals, tender / contracting lead times, supplier availability, delivery dates, licence and contract restrictions, payment or foreign-currency exposure and the required service start date. Distinguish confirmed blockers from unverified risks.'},
- {key:'fundingPlan',group:'finance',label:'How will funding or procurement gaps be resolved, and by whom?',hint:'Record the Finance / procurement owner, evidence references, approvals needed and target dates. Consider reuse, phased acquisition or a funded service arrangement only if mandatory requirements and sustainable recurring costs are satisfied. This plan is not purchase approval.'}
+ {key:'fundingPlan',group:'finance',label:'How will funding or procurement gaps be resolved, and by whom?',hint:'Record the Finance / procurement owner, evidence references, approvals needed and target dates. Consider reuse, phased acquisition or a funded service arrangement only if mandatory requirements and sustainable recurring costs are satisfied. This plan is not purchase approval.'},
+ {key:'exitStatus',group:'exit',label:'Is a feasible exit from the cloud provider available?',hint:'Required for external cloud, SaaS and the cloud components of a hybrid service. The institution must be able to retrieve all required information and restore, migrate or replace the service in another supported environment. A backup inside the same provider, or a promise that data can be exported, is insufficient on its own.',options:[['tested','Feasible exit documented and demonstrated in a test'],['documented','Feasible exit documented; demonstration / test still required'],['blocked','No feasible exit — data or service cannot be recovered or migrated'],['unknown','Exit feasibility has not been confirmed']]},
+ {key:'exitData',group:'exit',label:'How will all required data and configuration be retrieved?',hint:'List business data, attachments, metadata, logs / records, schemas, configuration and the keys or documented access needed to use them. Record complete export or replication formats, ownership / contractual access rights, checks for completeness and integrity, and independent access if the provider becomes unavailable. Do not enter actual keys or credentials.'},
+ {key:'exitRecovery',group:'exit',label:'How will the service be restored, migrated or replaced outside this provider?',hint:'Describe portable backups and a restore procedure, full data export and rebuild, replication, or another supported migration / replacement method. Explain encryption-key availability, software / licence and dependency compatibility, and how the data will be usable at the destination. Record test evidence, results or a planned demonstration; same-provider restore alone does not demonstrate exit.'},
+ {key:'exitDestination',group:'exit',label:'Where can the service and data run after exit, and within what time?',hint:'Identify an on-premises or alternative-provider destination, capacity, software support, operating owner, jurisdiction and security controls. Record achievable recovery / migration time, data-loss tolerance, dependency recovery order, cutover, reconciliation and rollback. The destination must satisfy the solution requirements.'},
+ {key:'exitTerms',group:'exit',label:'What are the exit costs, contractual conditions and responsible owners?',hint:'Record export / egress charges, transition funding, notice periods, termination rights, provider assistance, access during transition, secure deletion / retention obligations and removal of provider access. Identify service, infrastructure and procurement owners, the exit trigger, plan / contract references, last review and next test date.'}
 ];
 const evidenceExamples={costEvidence:'Comparison FIN-10, prepared by Finance on the recorded date; equivalent service, recovery and exit scope.',costPeriod:'Five years for every candidate arrangement.',baselineDemand:'100 transactions/s during normal operation; source: business forecast.',peakDemand:'500 transactions/s for 30 minutes at month-end; response-time target 2 seconds.',scalingEvidence:'Load test CAP-4; supported scaling range and provisioning time.',capacityAssumptions:'30% headroom, two recovery sites and a three-year growth forecast.',operatingEvidence:'Platform team owns the runtime; provider covers approved out-of-hours support; recovery responsibilities documented in OPS-10.',aiFlowDetails:'Institution-hosted inference; approved input data only; no prompts or telemetry sent to external model APIs.'};
 Object.assign(evidenceExamples,{
@@ -27,6 +32,23 @@ Object.assign(evidenceExamples,{
  procurementConstraints:'A competitive tender is required; estimated lead time four months, equipment delivery two months later; service is needed in three months. Procurement owner must validate the schedule.',
  fundingPlan:'Finance and procurement to confirm the shortfall and tender schedule by the recorded date; compare reuse or phased purchase against the same service and recovery requirements.'
 });
+Object.assign(evidenceExamples,{
+ exitStatus:'An independent restore or replacement exercise has recovered the complete dataset and required service at an approved destination: record the test evidence below. A same-provider backup alone is not this evidence.',
+ exitData:'Business records, attachments and metadata exported in documented formats; configuration and encryption-key access retained by the institution; reconciliation checks and independent copies documented in EXIT-1.',
+ exitRecovery:'Encrypted backups restored on institution-controlled infrastructure, or full export imported into a supported replacement application; exercise EXIT-2 records data completeness, usability and dependency checks.',
+ exitDestination:'Approved alternate environment with licensed runtime and capacity; cutover plan targets 8 hours and a 15-minute data-loss window, subject to validated service targets and test results.',
+ exitTerms:'Contract records export rights, assistance, notice and egress fees; funded transition owned by the service and procurement teams; deletion evidence required after migration; annual exit exercise.'
+});
+function cloudExitAssessment(r,required){
+ const fields=evidenceFields.filter(f=>f.group==='exit');
+ const missing=required?fields.filter(f=>f.key==='exitStatus'?!['tested','documented','blocked'].includes(r.exitStatus):!informationProvided(r[f.key])):[];
+ if(!required)return {required:false,missing:[],label:'Cloud exit applies to external cloud arrangements',detail:'Any external cloud, SaaS or hybrid cloud component must have a feasible exit. A local placement does not remove its separate recovery obligations.'};
+ if(r.exitStatus==='blocked')return {required:true,missing,label:'Cloud exit blocked',detail:'The proposed cloud arrangement conflicts with the mandatory ability to exit: all required data and the service must be recoverable, migratable or replaceable in another supported environment.'};
+ if(missing.length)return {required:true,missing,label:'Cloud exit unresolved',detail:'Cloud placement is withheld until exit feasibility and the required data, recovery / migration, destination and contractual details are confirmed. Missing information is not a confirmed impossibility.'};
+ return {required:true,missing:[],label:r.exitStatus==='tested'?'Cloud exit demonstrated — validation required':'Cloud exit documented — demonstration required',detail:'A feasible exit has been recorded. Validate complete data access, usability and restoration / migration at the destination, timing, costs and contract rights. '+(r.exitStatus==='tested'?'Review the supplied test evidence; questionnaire entries do not independently verify a successful exit.':'Demonstrate the plan through a proportionate restore or migration exercise before final approval.')};
+}
+function cloudExitHtml(result){const exit=result.cloudExit;if(!exit?.required)return '';return `<section class="notice ${exit.missing.length||state.requirements.exitStatus==='blocked'?'warning':''}" aria-label="Cloud exit readiness"><strong>${esc(exit.label)}</strong><p>${esc(exit.detail)}</p>${resolutionLinks(evidenceFields.filter(f=>f.group==='exit').map(f=>evidenceTarget(f.key)))}</section>`;}
+function cloudExitInputs(){return `<section id="cloud-exit" class="line"><h3>Cloud exit and data recovery</h3><p class="meta">A feasible exit is required whenever the arrangement uses external cloud, SaaS or cloud components in a hybrid service. Complete data export must be paired with a way to restore, migrate or replace the required service.</p>${evidenceFieldHtml(evidenceFields.find(f=>f.key==='exitStatus'))}<details class="evidence-inputs"><summary>Record cloud exit and recovery details (required for cloud arrangements)</summary>${evidenceFields.filter(f=>f.group==='exit'&&f.key!=='exitStatus').map(evidenceFieldHtml).join('')}</details></section>`;}
 function evidenceValue(field,value){return field.options?.find(([key])=>key===value)?.[1]||String(value||'');}
 function fundingReadiness(r=state.requirements){
  const status=r.fundingStatus;
@@ -37,6 +59,7 @@ function fundingReadiness(r=state.requirements){
 }
 function fundingHtml(r=state.requirements){const readiness=fundingReadiness(r);return `<section class="notice ${['unfunded','conditional'].includes(r.fundingStatus)?'warning':''}" aria-label="Funding and procurement readiness"><strong>${esc(readiness.label)}</strong><p>${esc(readiness.detail)}</p>${resolutionLinks(evidenceFields.filter(f=>f.group==='finance').map(f=>evidenceTarget(f.key)))}</section>`;}
 const ruleTraceability=[
+ {id:'C3',rule:'Require a feasible cloud exit with complete data access and a supported recovery, migration or replacement route. Block a confirmed impossible exit; withhold cloud placement when exit feasibility or required details are unconfirmed.',type:'Direct cloud-exit constraint',limit:'Applies to external cloud, SaaS and hybrid cloud components. Recorded plans and test claims require specialist validation; same-provider backup alone does not demonstrate exit.'},
  {id:'C1',rule:'Enforce declared local execution, external-processing prohibitions, sovereignty and hard proximity / hardware restrictions; block incompatible SaaS or hybrid arrangements.',type:'Direct constraint enforcement',limit:'Enforces declarations only. Specialist evidence is still required for eligibility.'},
  {id:'C2',rule:'Enforce AI processing restrictions and flag contradictory AI answers.',type:'Direct constraint enforcement',limit:'Unknown relevant flows withhold placement. Processing location applies to AI workloads or enabled / planned embedded AI; operational authority applies only to enabled / planned embedded AI.'},
  {id:'I1',rule:'Withhold placement when required location, architecture, profile or relevant AI-flow inputs are unknown.',type:'Tool interpretation / information threshold',limit:'The questionnaire threshold is introduced for the demonstrator; it is not mandatory eligibility validation.'},
@@ -57,7 +80,7 @@ function economicBasis(r,elasticityBased){
  if(['cloud','local','similar'].includes(r.economics))return (elasticityBased?elasticityMessage+' ':'')+'Assessor-supplied conclusion: '+({cloud:'economics favor cloud',local:'economics favor local',similar:'economics are comparable / no clear cost advantage'}[r.economics])+'. Supporting comparative lifecycle-cost evidence requires specialist validation. The tool does not calculate TCO or establish economic superiority.';
  return elasticityBased?elasticityMessage:'Economic suitability remains unassessed; no comparative lifecycle-cost conclusion has been supplied.';
 }
-function outstandingRequirements(r,placementMissing=[]){
+function outstandingRequirements(r,placementMissing=[],exitRequired=false){
  const a=state.application,items=[];
  const add=(category,detail)=>items.push({category,detail,targets:requirementTargets(category,detail)});
  const unknown=key=>!r[key]||r[key]==='unknown';
@@ -81,6 +104,12 @@ function outstandingRequirements(r,placementMissing=[]){
  if(!r.fundingStatus||r.fundingStatus==='unknown')add('Funding and procurement','Funding for purchases and recurring service payments is unconfirmed.');
  if(['unfunded','conditional'].includes(r.fundingStatus))add('Funding and procurement',fundingReadiness(r).detail);
  for(const f of evidenceFields.filter(f=>f.group==='finance'&&!f.options))if(!informationProvided(r[f.key]))add('Funding and procurement',f.label+' remains outstanding.');
+ if(exitRequired){
+  const exit=cloudExitAssessment(r,true);
+  if(r.exitStatus==='blocked')add('Cloud exit and reversibility',exit.detail);
+  for(const f of exit.missing)add('Cloud exit and reversibility',f.label+' remains unconfirmed.');
+  if(r.exitStatus==='documented'&&!exit.missing.length)add('Cloud exit and reversibility','Demonstrate the recorded exit plan through a restore, migration or replacement exercise and validate the evidence.');
+ }
  for(const label of placementMissing)add('Placement inputs',label);
  for(const key of ['id','name','owner'])if(!informationProvided(a[key]))add('Solution ownership',({id:'Solution ID',name:'Solution name',owner:'Institutional service owner'}[key])+' is missing.');
  return items.filter((item,i)=>items.findIndex(x=>x.category===item.category&&x.detail===item.detail)===i);
@@ -138,6 +167,10 @@ function requirementTargets(category,detail){
   if(field)return [evidenceTarget(field.key)];
   return [assessmentTarget(detail.startsWith('Demand')?'demand':'economics')];
  }
+ if(category==='Cloud exit and reversibility'||evidenceFields.some(f=>f.group==='exit'&&f.label===detail)){
+  const field=evidenceFields.find(f=>f.group==='exit'&&detail.startsWith(f.label));
+  return field?[evidenceTarget(field.key)]:[evidenceTarget('exitStatus'),evidenceTarget('exitRecovery')];
+ }
  if(category==='Funding and procurement'){
   const field=evidenceFields.find(f=>f.group==='finance'&&detail.startsWith(f.label));
   if(field)return [evidenceTarget(field.key)];
@@ -187,8 +220,8 @@ function diagnosticReference(target,r=state.requirements){
   return {label:'Q'+(index+1)+'. '+q.label,answer:q.options.find(([value])=>value===r[key])?.[1]||'Not answered',target};
  }
  const key=target.id.replace(/^(profile|application|evidence)-/,'');
- const option=target.step===0?profileOptions[key]:null;
- return {label:option?.label||target.label.replace(/^(Review|Provide) /,''),answer:option?option.options.find(([value])=>value===state.application[key])?.[1]||'Not answered':String((target.step===0?state.application:r)[key]||'Not provided'),target};
+ const option=target.step===0?profileOptions[key]:evidenceFields.find(f=>f.key===key&&f.options);
+ return {label:option?.label||target.label.replace(/^(Review|Provide) /,''),answer:option?option.options.find(([value])=>value===(target.step===0?state.application:r)[key])?.[1]||'Not answered':String((target.step===0?state.application:r)[key]||'Not provided'),target};
 }
 function decisionDiagnostic(kinds,title,detail,action,keys=[],profileKeys=[],r=state.requirements,extraTargets=[]){
  const targets=[...keys.map(assessmentTarget),...profileKeys.map(profileTarget),...extraTargets].filter((t,i,all)=>all.findIndex(other=>other.id===t.id&&other.step===t.step)===i);
@@ -236,7 +269,7 @@ function outstandingHtml(r){
  const categories=[...new Set(r.outstanding.map(x=>x.category))];
  return `<section class="proposal-pending outstanding-requirements" aria-label="Outstanding requirements"><h3>Outstanding requirements · missing / incomplete information</h3>${categories.length?categories.map(c=>`<div class="outstanding-group"><strong>${esc(c)}</strong><ul class="help-list">${r.outstanding.filter(x=>x.category===c).map(item=>`<li>${esc(item.detail)}${resolutionLinks(item.targets)}</li>`).join('')}</ul></div>`).join(''):`<p>Information has been supplied for the characterized requirements. Specialist evidence validation remains outstanding.</p>${resolutionLinks([validationTarget()])}`}</section>`;
 }
-function evidenceFieldHtml(f){return `<div class="field line text-entry-field"><label for="evidence-${f.key}">${esc(f.label)}</label><div class="field-hint" id="hint-${f.key}">${esc(f.hint)}</div><div class="field-example" id="example-${f.key}">Illustrative example: ${esc(evidenceExamples[f.key])}</div>${f.options?`<select id="evidence-${f.key}" aria-describedby="hint-${f.key} example-${f.key}" onchange="answer('${f.key}',this.value)"><option value="">Select funding status</option>${f.options.map(([value,label])=>`<option value="${value}" ${state.requirements[f.key]===value?'selected':''}>${esc(label)}</option>`).join('')}</select>`:`<textarea id="evidence-${f.key}" aria-describedby="hint-${f.key} example-${f.key}" oninput="answer('${f.key}',this.value)">${esc(state.requirements[f.key])}</textarea>`}</div>`;}
+function evidenceFieldHtml(f){return `<div class="field line text-entry-field"><label for="evidence-${f.key}">${esc(f.label)}</label><div class="field-hint" id="hint-${f.key}">${esc(f.hint)}</div><div class="field-example" id="example-${f.key}">Illustrative example: ${esc(evidenceExamples[f.key])}</div>${f.options?`<select id="evidence-${f.key}" aria-describedby="hint-${f.key} example-${f.key}" onchange="answer('${f.key}',this.value)"><option value="">Select an answer</option>${f.options.map(([value,label])=>`<option value="${value}" ${state.requirements[f.key]===value?'selected':''}>${esc(label)}</option>`).join('')}</select>`:`<textarea id="evidence-${f.key}" aria-describedby="hint-${f.key} example-${f.key}" oninput="answer('${f.key}',this.value)">${esc(state.requirements[f.key])}</textarea>`}</div>`;}
 function fundingInputs(){return `<details id="funding-procurement" class="evidence-inputs"><summary>Record funding and procurement details (optional at this stage)</summary><p class="meta">Compare lifecycle cost and financial feasibility separately. A technically suitable arrangement may still be unaffordable or impossible to procure in time. Record supported information below; funding is additional decision evidence beyond the 22 assessment questions.</p>${evidenceFields.filter(f=>f.group==='finance').map(evidenceFieldHtml).join('')}</details>`;}
 function evidenceInputs(group){const fields=evidenceFields.filter(f=>group==='economics'?evidenceFields.indexOf(f)<6:group==='operations'?f.key==='operatingEvidence':f.key==='aiFlowDetails');return `<details class="evidence-inputs"><summary>Record ${group==='economics'?'economic and capacity evidence':group==='operations'?'operating capability details':'AI data-flow details'} (optional at this stage)</summary><p class="meta">Record known information or evidence references. Missing or incomplete information stays visible beside the proposal. These entries do not validate mandatory eligibility.</p>${fields.map(evidenceFieldHtml).join('')}</details>`;}
 

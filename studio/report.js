@@ -7,7 +7,7 @@ function reportSections(){
  const pair=(question,answer)=>({question,answer:text(answer),unanswered:!informationProvided(answer)});
  const hasText=value=>Boolean(String(value||'').trim());
  const enteredPair=(question,value)=>hasText(value)?[pair(question,value)]:[];
- const evidenceEntries=evidenceFields.filter(f=>f.group!=='finance'&&hasText(requirements[f.key])).map(f=>pair(f.label,requirements[f.key]));
+ const evidenceEntries=evidenceFields.filter(f=>!['finance','exit'].includes(f.group)&&hasText(requirements[f.key])).map(f=>pair(f.label,requirements[f.key]));
  const decisionEntries=[['rationale','Rationale / architecture notes'],['conditions','Conditions and evidence references'],['owner','Decision owner'],['platform','Platform / technology owner'],['operator','Technical operator / provider'],['authority','Approval authority'],['review','Review trigger / date']].flatMap(([key,label])=>enteredPair(label,d[key]));
  return [
   ['Preliminary assessment scope',assessmentNotice],
@@ -23,6 +23,11 @@ function reportSections(){
   ['Confirmed requirement conflicts',r.conflictDetails.length?r.conflictDetails.flatMap(diagnosticReportLines):['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
   ...(['placement','operating'].some(kind=>decisionDiagnostics(kind,r).some(item=>item.type==='unresolved'))?[['Unresolved decisions — causes and next steps',['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').flatMap(item=>diagnosticReportLines({...item,title:(kind==='placement'?'Placement: ':'Operating model: ')+item.title})))]]:[]),
   ...(typeof aiReportSection==='function'?[aiReportSection()]:[]),
+  ...(r.cloudExit.required||evidenceFields.some(f=>f.group==='exit'&&hasText(requirements[f.key]))?[['Cloud exit and data recovery',[
+   pair('Cloud exit readiness',r.cloudExit.label),r.cloudExit.detail,
+   ...evidenceFields.filter(f=>f.group==='exit'&&hasText(requirements[f.key])).map(f=>pair(f.label,evidenceValue(f,requirements[f.key]))),
+   'Cloud exit feasibility and complete data / service recovery require specialist validation. Recorded plans, backups and test claims do not independently establish a successful exit or institutional approval.'
+  ]]]:[]),
   ['Funding and procurement',[
    pair('Financial readiness',fundingReadiness(requirements).label),
    fundingReadiness(requirements).detail,

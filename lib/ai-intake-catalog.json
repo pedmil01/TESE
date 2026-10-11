@@ -527,6 +527,37 @@
     "hint": "Record the Finance / procurement owner, evidence references, approvals needed and target dates. Consider reuse, phased acquisition or a funded service arrangement only if mandatory requirements and sustainable recurring costs are satisfied. This plan is not purchase approval."
   },
   {
+    "field": "requirements.exitStatus",
+    "label": "Is a feasible exit from the cloud provider available?",
+    "hint": "Required for external cloud, SaaS and the cloud components of a hybrid service. The institution must be able to retrieve all required information and restore, migrate or replace the service in another supported environment. A backup inside the same provider, or a promise that data can be exported, is insufficient on its own.",
+    "options": {
+      "tested": "Feasible exit documented and demonstrated in a test",
+      "documented": "Feasible exit documented; demonstration / test still required",
+      "blocked": "No feasible exit — data or service cannot be recovered or migrated",
+      "unknown": "Exit feasibility has not been confirmed"
+    }
+  },
+  {
+    "field": "requirements.exitData",
+    "label": "How will all required data and configuration be retrieved?",
+    "hint": "List business data, attachments, metadata, logs / records, schemas, configuration and the keys or documented access needed to use them. Record complete export or replication formats, ownership / contractual access rights, checks for completeness and integrity, and independent access if the provider becomes unavailable. Do not enter actual keys or credentials."
+  },
+  {
+    "field": "requirements.exitRecovery",
+    "label": "How will the service be restored, migrated or replaced outside this provider?",
+    "hint": "Describe portable backups and a restore procedure, full data export and rebuild, replication, or another supported migration / replacement method. Explain encryption-key availability, software / licence and dependency compatibility, and how the data will be usable at the destination. Record test evidence, results or a planned demonstration; same-provider restore alone does not demonstrate exit."
+  },
+  {
+    "field": "requirements.exitDestination",
+    "label": "Where can the service and data run after exit, and within what time?",
+    "hint": "Identify an on-premises or alternative-provider destination, capacity, software support, operating owner, jurisdiction and security controls. Record achievable recovery / migration time, data-loss tolerance, dependency recovery order, cutover, reconciliation and rollback. The destination must satisfy the solution requirements."
+  },
+  {
+    "field": "requirements.exitTerms",
+    "label": "What are the exit costs, contractual conditions and responsible owners?",
+    "hint": "Record export / egress charges, transition funding, notice periods, termination rights, provider assistance, access during transition, secure deletion / retention obligations and removal of provider access. Identify service, infrastructure and procurement owners, the exit trigger, plan / contract references, last review and next test date."
+  },
+  {
     "field": "decision.rationale",
     "label": "rationale",
     "hint": "Explain why the proposed placement and operating arrangement fit the solution, and identify assumptions or alternatives that still need review."
