@@ -1,17 +1,17 @@
-# Governing placement rules
+# Governing placement rules and demonstrator scope
 
-Source: Tese_Pedro_Milagres_Silva_2026_v5.1(1).docx, supplied 2026-10-04.
-SHA-256: 5bf1dc4be68e5d1f7b9ee8a6170ad005ff8c159dd2acfb279e0bc4a078209e2d
+Governing source: Tese_Pedro_Milagres_Silva_2026_v5.1(4).docx, verified 2026-10-11.
+Alignment checked against Sections 3.2.1, 3.2.2, 3.3.1–3.3.2, 3.4.1–3.4.2 and Appendices B.2–B.7.
 
-- Section 3.2.1: workload characterization precedes arrangement identification; mandatory failures exclude, insufficient evidence leaves eligibility unresolved; suitability never authorizes deployment.
-- Section 3.3.1 and Appendix B.4: security, data/control sovereignty, auditability, dependency and reversibility are mandatory. Local hosting alone does not establish control.
-- Section 3.3.2 and Appendix B.5: assess criticality, impact tolerance and end-to-end disaster/trusted recovery. Provider commitments alone do not establish recovery capability.
-- Appendix B.2: F1, T3 and R1–R4 are mandatory gate criteria. High criticality is not defined as a universal cloud prohibition.
-- Explicit institution-defined local-execution or sovereignty requirements exclude external execution, irrespective of cost or elasticity.
-- The profile and assessment share criticality, demand and hardware answers. Profile financial/systemic impact adds recovery/impact requirements. Unconfirmed location or sovereignty requirements withhold placement.
-- Per user request, mandatory eligibility inputs are removed from the application assessment. The tool now returns a provisional architecture proposal and lists the six mandatory validation areas for institutional review. It does not collect gate outcomes, certify eligibility or implicitly pass hidden checks.
-- Location/service-model suggestion rules remain an application-led interpretation, not the thesis comparative scoring matrix. The user's single-application workflow is retained. No simulated compliance or operational effectiveness is claimed.
+This is a preliminary solution-placement demonstrator implementing selected framework mechanisms. It applies rules to suggest an arrangement, not the full weighted comparison of eligible candidates described in the thesis. The workbook's catalog and DR definitions are retained; its scores and weights are not applied.
 
-- AI assessment explicitly separates infrastructure for AI, embedded AI and AI-enabled operations (§3.4; B.7 AI1–AI10). A0–A4 are authority categories, not placement scores or authorizations. External AI processing conflicts with declared external-execution prohibitions. Unknown AI flows withhold placement when AI is in scope. Controls remain validation guidance outside the questionnaire.
+- The placement proposal, eligibility, proposed operating model and approval are separate fields. Eligibility is always unresolved — specialist validation required. Approval is always pending institutional approval. Questionnaire answers, supporting references and decision notes cannot change those outcomes.
+- Declared institutional execution restrictions, external-processing prohibitions and sovereignty requirements constrain placement. Confirmed incompatible requirements withhold the incompatible placement, even when economic or elasticity answers favor it.
+- Missing evidence is distinct from confirmed conflicts. Recovery requirements, RTO/RPO, dependency recovery order, trusted recovery, infrastructure security, AI authority/data flows, operating capability and economic evidence remain visible beside every proposal and in the PDF.
+- AI is not applicable only when confirmed non-AI delivery and explicit answers to all three dimensions establish that no AI workload, embedded AI or AI-enabled operation is relevant. Unknown applicability stays unresolved. Relevant unknown AI processing flows withhold placement. A3/A4 record intent and required controls; they grant no authorization.
+- Operating-model mapping requires confirmed control, skills, sourcing and operating-scope information. Capability conflicts leave the model unresolved. SaaS provider operation does not resolve missing tenant administration or support capability.
+- Assessor-supplied economic preferences require comparative evidence and specialist validation. The engine does not calculate TCO or establish superiority. Elasticity-based cloud suggestions explicitly state that economic suitability remains unassessed; costs, period, baseline/peak demand, scaling and capacity assumptions stay visible.
+- Mandatory eligibility validation remains outside the questionnaire. Infrastructure specialists, solution owners and relevant experts must validate evidence. Institutional governance must approve final placement/deployment.
+- Criticality strengthens impact/recovery obligations, without a universal criticality or AI cloud prohibition. No operational effectiveness, recovery test or regulatory assurance is simulated.
 
-- Infrastructure-security characterization covers exposure, isolation, encryption-key custody and trusted recovery (§3.3.1–3.3.2; B.4–B.5). Answers generate architecture and responsibility implications, not a cyber audit, detailed risk score or assurance result. Actual platform support for mandatory controls remains subject to institutional validation. Existing explicit local-execution and sovereignty restrictions continue to constrain placement.
+The exact notice, method statement and traceability rows are shared by the UI and PDF in dist/decision-context.js. Rule identifiers C1/C2 enforce declarations; I1–I8 are tool interpretations; V1/V2 are framework-derived review obligations. Each row maps its behavior to a verified thesis section and criterion.
