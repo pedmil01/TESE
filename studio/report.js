@@ -13,9 +13,9 @@ function reportSections(){
   ['Preliminary assessment scope',assessmentNotice],
   ...(typeof aiIntakeReportSection==='function'&&aiIntakeReportSection()?[aiIntakeReportSection()]:[]),
   ['Decision summary',[
-   ...(hasText(a.name)||hasText(a.id)?[[...(hasText(a.name)?['Solution: '+a.name]:[]),...(hasText(a.id)?['ID: '+a.id]:[])].join(' | ')]:[]),
-   ...(hasText(a.owner)?['Institutional service owner: '+a.owner]:[]),
-   ...decisionStatuses(r).map(([label,value])=>label+': '+value),
+   ...enteredPair('Solution',a.name),...enteredPair('Solution ID',a.id),
+   ...enteredPair('Institutional service owner',a.owner),
+   ...decisionStatuses(r).map(([label,value])=>pair(label,value)),
    ...r.conflictDetails.map(item=>'Conflict: '+item.title+'. '+item.answers.map(answer=>answer.label.split('. ')[0]+': '+answer.answer).join(' | ')),
    ...['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').map(item=>(kind==='placement'?'Placement':'Operating model')+' unresolved: '+item.detail)),
    'Placement and the proposed operating model are preliminary recommendations. Outstanding requirements require specialist validation; final decisions require institutional approval.'
@@ -26,16 +26,16 @@ function reportSections(){
   ['Recommendation basis',[
    ...(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm required inputs, restrictions and supported architecture.']),
    r.economicsBasis,
-   'Compatible delivery: '+r.compatible,
-   'AI applicability: '+r.aiStatus,
-   ...(r.intendedAiAuthority?['Intended AI authority: '+r.intendedAiAuthority+'. Recorded intent does not authorize execution.']:[]),
+   pair('Compatible delivery',r.compatible),
+   pair('AI applicability',r.aiStatus),
+   ...(r.intendedAiAuthority?[pair('Intended AI authority',r.intendedAiAuthority+'. Recorded intent does not authorize execution.')]:[]),
    'Applied rules: '+r.appliedRules.join(', ')+'. See the recommendation-rules table below.'
   ]],
   ['Outstanding requirements — missing / incomplete information',r.outstanding.length?r.outstanding.map(x=>x.category+': '+x.detail):['Information has been supplied for the characterized requirements. Specialist evidence validation remains outstanding.']],
   ['Proposed operating model — basis and boundary',[
    ...r.opReasons,
-   'Supplemental support: '+r.support,
-   ...(zone?['Service-model responsibility boundary: '+zone.responsibility]:[]),
+   pair('Supplemental support',r.support),
+   ...(zone?[pair('Service-model responsibility boundary',zone.responsibility)]:[]),
    'Institutional service ownership and accountability remain internal under every operating model.'
   ]],
   ['Specialist validation and institutional approval',[
@@ -84,18 +84,33 @@ async function buildReportPdf(){
  function wrap(value,size,f,width=503){const output=[];for(const paragraph of clean(value).split('\n')){let line='';for(const word of paragraph.split(/\s+/)){if(f.widthOfTextAtSize((line?line+' ':'')+word,size)<=width){line+=(line?' ':'')+word;continue}if(line)output.push(line);line='';for(const ch of word){if(f.widthOfTextAtSize(line+ch,size)>width){output.push(line);line=''}line+=ch}}output.push(line)}return output;}
  function write(value,{size=10.5,f=font,color=ink,gap=8,x=46,width=503}={}){const lines=wrap(value,size,f,width),leading=size*1.45;for(const line of lines){if(y-leading<55)newPage();page.drawText(line,{x,y,size,font:f,color});y-=leading}y-=gap;}
  function writeAnswer(item){
-  const questionLines=wrap(item.question,10.5,bold);
-  const answerLines=wrap('Answer: '+item.answer,10.5,font,491);
-  const height=(questionLines.length+answerLines.length)*15.225+24;
-  const minimum=questionLines.length*15.225+Math.min(answerLines.length,3)*15.225+12;
-  if(y-Math.min(height,minimum+100)<55)newPage();
-  write(item.question,{f:bold,gap:5});
+  const size=11,leading=16.5;
+  const questionLines=wrap(item.question,size,bold);
+  const answerLines=wrap(item.answer,size,font,491);
+  const height=(questionLines.length+answerLines.length)*leading+24;
+  const minimum=(questionLines.length+Math.min(answerLines.length,3))*leading+12;
+  if(y-Math.min(height,minimum+80)<55)newPage();
+  write(item.question,{size,f:bold,gap:6});
   const color=item.unanswered?rgb(.55,.30,.09):ink;
   for(const line of answerLines){
-   if(y-15.225<55){newPage();write('Answer (continued)',{size:9,f:bold,color:muted,gap:6,x:58,width:491});}
-   page.drawText(line,{x:58,y,size:10.5,font,color});y-=15.225;
+   if(y-leading<55){newPage();write(item.question+' (continued)',{size:9,f:bold,color:muted,gap:7});}
+   page.drawText(line,{x:58,y,size,font,color});y-=leading;
   }
-  y-=17;
+  y-=16;
+  if(y>60){page.drawLine({start:{x:46,y:y+5},end:{x:549,y:y+5},thickness:.4,color:rgb(.87,.90,.90)});}
+ }
+ function writeNarrative(value){
+  const fixedLabels=['Conflict','Placement unresolved','Operating model unresolved','Applied rules','Cause','Answers involved','What to review','Next step','Evidence needed'];
+  const colon=value.indexOf(': ');
+  if(colon>0&&fixedLabels.includes(value.slice(0,colon))){writeAnswer({question:value.slice(0,colon),answer:value.slice(colon+2)});return;}
+  for(const paragraph of value.split(/\n\s*\n/)){
+   for(const line of paragraph.split('\n')){
+    const heading=/^\d+\.\s+.{1,100}$/.test(line.trim())&&!/[.!?]$/.test(line.trim());
+    if(heading&&y<100)newPage();
+    write(line,{size:11,f:heading?bold:font,gap:heading?7:5});
+   }
+   y-=7;
+  }
  }
  function writeTraceTable(rows){
   const widths=[208,110,185],left=46,size=8.5,leading=12.3,pad=7;
@@ -124,7 +139,7 @@ async function buildReportPdf(){
   if(heading==='Recommendation rules and limitations'){writeTraceTable(items);continue;}
   let group=null;
   for(const item of items){
-   if(typeof item==='string'){write(item);continue;}
+   if(typeof item==='string'){writeNarrative(item);continue;}
    if(item.group&&item.group!==group){
     if(y<165)newPage();
     group=item.group;write(group,{size:11,f:bold,color:green,gap:12});

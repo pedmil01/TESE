@@ -15,12 +15,13 @@ test('all inputs reach Responses and advice cannot expose credentials or become 
  assert.match(sent.instructions,/untrusted assessment data/);assert.match(sent.instructions,/HOURS/);assert.match(sent.instructions,/MINUTES/);assert.match(sent.instructions,/A4 Bounded Autonomy/);assert.match(sent.instructions,/eligibility unresolved/);
  assert.equal(output.provider,'OpenAI');assert.ok(!JSON.stringify(output).includes('test-only-key'));
  assert.match(sent.instructions,/Eligibility scope and evidence review/);
+ assert.match(sent.instructions,/NEVER exceed 700 words/);
  assert.match(sent.instructions,/do not add an eligibility or approval status to the proposal/);
  assert.match(sent.instructions,/aiAuthority is collected only when embeddedAI is enabled or planned/);
  assert.match(sent.instructions,/No AI workload alone does not exclude embedded AI processing/);
 });
 test('the hard word limit is enforced independently of model instructions',()=>{
- const result=limitWords(Array(2500).fill('word').join(' '));assert.equal(result.text.split(/\s+/).length,2000);assert.equal(result.wordCount,2000);assert.equal(result.shortened,true);
+ const result=limitWords(Array(2500).fill('word').join(' '));assert.equal(result.text.split(/\s+/).length,700);assert.equal(result.wordCount,700);assert.equal(result.shortened,true);
 });
 test('invalid input and billing failures have actionable messages without provider secrets',async()=>{
  assert.throws(()=>validateAssessment({...assessment,requirements:{cloud:{nested:true}}}),/field is invalid/);
@@ -46,4 +47,14 @@ test('changing any optional text invalidates the AI report; HTML-like model cont
  assert.equal(vm.runInContext("JSON.stringify(reportSections()).includes('<script>alert(1)</script> Preliminary advice.')",context),false);
  assert.match(vm.runInContext('JSON.stringify(aiReportSection())',context),/omitted/);
  assert.match(fs.readFileSync('studio/ai-analysis.js','utf8'),/event.origin!==aiGithubOrigin\|\|event.source!==window.opener/);
+});
+
+test('short analysis is preserved and browser acceptance enforces the 700-word cap',()=>{
+ const short='1. Recommendation\n\nRetain internal control.\n\n2. Next steps\n\nValidate the evidence.';
+ assert.equal(limitWords(short).text,short);
+ const context=vm.createContext({location:{origin:'https://hybrid-placement-pedro.pedmil226190.chatgpt.site',hash:''},window:{addEventListener(){}},document:{addEventListener(){}}});
+ vm.runInContext(fs.readFileSync('studio/ai-analysis.js','utf8'),context);
+ vm.runInContext("aiAccept({text:Array(1000).fill('word').join(' '),model:'test'},'snapshot')",context);
+ assert.equal(vm.runInContext('aiAnalysis.wordCount',context),700);
+ assert.match(vm.runInContext('aiAnalysis.text',context),/700-word limit/);
 });
