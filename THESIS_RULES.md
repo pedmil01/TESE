@@ -10,7 +10,7 @@ SHA-256: 5bf1dc4be68e5d1f7b9ee8a6170ad005ff8c159dd2acfb279e0bc4a078209e2d
 - Explicit institution-defined local-execution or sovereignty requirements exclude external execution, irrespective of cost or elasticity.
 - The profile and assessment share criticality, demand and hardware answers. Profile financial/systemic impact adds recovery/impact requirements. Unconfirmed location or sovereignty requirements withhold placement.
 - Per user request, mandatory eligibility inputs are removed from the application assessment. The tool now returns a provisional architecture proposal and lists the six mandatory validation areas for institutional review. It does not collect gate outcomes, certify eligibility or implicitly pass hidden checks.
-- Location/service-model suggestion rules remain an application-led interpretation, not the thesis comparative scoring matrix. The user's greenfield and single-application workflow is retained. No simulated compliance or operational effectiveness is claimed.
+- Location/service-model suggestion rules remain an application-led interpretation, not the thesis comparative scoring matrix. The user's single-application workflow is retained. No simulated compliance or operational effectiveness is claimed.
 
 - AI assessment explicitly separates infrastructure for AI, embedded AI and AI-enabled operations (§3.4; B.7 AI1–AI10). A0–A4 are authority categories, not placement scores or authorizations. External AI processing conflicts with declared external-execution prohibitions. Unknown AI flows withhold placement when AI is in scope. Controls remain validation guidance outside the questionnaire.
 

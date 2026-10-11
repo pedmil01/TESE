@@ -55,7 +55,7 @@ function reportSections(){
   pair('Technical operator / provider',d.operator),pair('Approval authority',d.authority),pair('Review trigger / date',d.review)
  ]],
  ['Framework basis and limitations',[
-  'Governing source: Tese_Pedro_Milagres_Silva_2026_v5.1(1).docx; §3.2.1 placement and mandatory eligibility, §3.3.1 sovereignty, §3.3.2 recovery, §3.4 AI infrastructure, embedded AI and A0–A4 operations, and Appendices B.2–B.7. The greenfield workbook v4 supplies the supporting catalog.',
+  'Governing source: Tese_Pedro_Milagres_Silva_2026_v5.1(1).docx; §3.2.1 placement and mandatory eligibility, §3.3.1 sovereignty, §3.3.2 recovery, §3.4 AI infrastructure, embedded AI and A0–A4 operations, and Appendices B.2–B.7. The workbook v4 supplies the supporting catalog.',
   'The solution-led recommendation rules are a decision-support interpretation of the framework, not validated thresholds from the workbook candidate-scoring matrix.',
   'Answers are supplied by the assessor. This report does not independently verify software support, provider evidence, compliance, tested recovery or real operational effectiveness.',
   'Suggested sizing text is a requirements-gathering aid. Unknown values remain unconfirmed and must not be treated as approved capacity targets.'
