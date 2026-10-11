@@ -5,11 +5,15 @@ function reportSections(){
  const response=q=>!questionApplies(q)?'Not applicable — responses establish that no relevant AI capability is involved':q.options.find(([v])=>v===state.requirements[q.key])?.[1]||'Not answered';
  const text=value=>value||'Not provided';
  const pair=(question,answer)=>({question,answer:text(answer),unanswered:!informationProvided(answer)});
+ const hasText=value=>Boolean(String(value||'').trim());
+ const enteredPair=(question,value)=>hasText(value)?[pair(question,value)]:[];
+ const evidenceEntries=evidenceFields.filter(f=>hasText(state.requirements[f.key])).map(f=>pair(f.label,state.requirements[f.key]));
+ const decisionEntries=[['rationale','Rationale / architecture notes'],['conditions','Conditions and evidence references'],['owner','Decision owner'],['platform','Platform / technology owner'],['operator','Technical operator / provider'],['authority','Approval authority'],['review','Review trigger / date']].flatMap(([key,label])=>enteredPair(label,d[key]));
  return [
   ['Preliminary assessment scope',assessmentNotice],
   ['Decision summary',[
-   'Solution: '+text(a.name)+' | ID: '+text(a.id),
-   'Institutional service owner: '+text(a.owner),
+   ...(hasText(a.name)||hasText(a.id)?[[...(hasText(a.name)?['Solution: '+a.name]:[]),...(hasText(a.id)?['ID: '+a.id]:[])].join(' | ')]:[]),
+   ...(hasText(a.owner)?['Institutional service owner: '+a.owner]:[]),
    ...decisionStatuses(r).map(([label,value])=>label+': '+value),
    ...r.conflictDetails.map(item=>'Conflict: '+item.title+'. '+item.answers.map(answer=>answer.label.split('. ')[0]+': '+answer.answer).join(' | ')),
    ...['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').map(item=>(kind==='placement'?'Placement':'Operating model')+' unresolved: '+item.detail)),
@@ -42,22 +46,20 @@ function reportSections(){
   ]],
   ['Infrastructure security implications',r.cyberChecks],
   ['Assessment questions and answers',questions.map((q,i)=>({question:'Q'+(i+1)+'. '+q.label,answer:response(q),group:q.group,unanswered:questionApplies(q)&&(!state.requirements[q.key]||state.requirements[q.key]==='unknown')}))],
-  ['Supporting requirement information and evidence',evidenceFields.map(f=>f.key==='aiFlowDetails'&&aiNotApplicable(state.requirements)?({question:f.label,answer:'Not applicable — responses establish that no relevant AI capability is involved',unanswered:false}):({...pair(f.label,state.requirements[f.key]),unanswered:!informationProvided(state.requirements[f.key])}))],
+  ...(evidenceEntries.length?[['Supporting requirement information and evidence',evidenceEntries]]:[]),
   ['Solution profile',[
-   pair('Purpose and institutional capability',a.capability),
+   ...enteredPair('Purpose and institutional capability',a.capability),
    ...Object.keys(profileOptions).map(key=>({...pair(profileOptions[key].label,option(key)),unanswered:!a[key]||a[key]==='unknown'})),
-   pair('Data labels and handling restrictions',a.classificationNotes),
-   pair('RTO — time to restore (hours)',a.rto),pair('RPO — acceptable data-loss window (minutes)',a.rpo),
-   pair('Jurisdiction, keys and administration',a.jurisdiction),pair('Latency and proximity',a.latency),
-   pair('Dependencies and recovery order',a.dependencies),
-   pair('Additional information and sizing details for evaluation and reporting ('+(needsEdited?'user-edited':'automatically suggested; requires validation')+')',a.needs||suggestedNeeds())
+   ...enteredPair('Data labels and handling restrictions',a.classificationNotes),
+   ...enteredPair('RTO — time to restore (hours)',a.rto),...enteredPair('RPO — acceptable data-loss window (minutes)',a.rpo),
+   ...enteredPair('Jurisdiction, keys and administration',a.jurisdiction),...enteredPair('Latency and proximity',a.latency),
+   ...enteredPair('Dependencies and recovery order',a.dependencies),
+   ...(hasUserSizingInformation()?[pair('Additional information and sizing details for evaluation and reporting (user-entered)',a.needs)]:[])
   ]],
-  ['Decision record',[
-   pair('Rationale / architecture notes',d.rationale),pair('Conditions and evidence references',d.conditions),
-   pair('Decision owner',d.owner),pair('Platform / technology owner',d.platform),
-   pair('Technical operator / provider',d.operator),pair('Approval authority',d.authority),pair('Review trigger / date',d.review),
+  ...(decisionEntries.length?[['Decision record',[
+   ...decisionEntries,
    'Naming an approval authority or entering decision notes does not grant approval. Final decisions require a separate institutional approval process.'
-  ]],
+  ]]]:[]),
   ['Recommendation method and limitations',[
    methodDescription,
    'Directly implemented declarations and specialist validation obligations are distinguished from interpretation rules introduced for the demonstrator, including the elasticity-based cloud suggestion.',

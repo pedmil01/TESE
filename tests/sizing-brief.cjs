@@ -1,0 +1,37 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const nodes=Object.fromEntries(['sizing-brief-view','sizing-brief-editor','edit-sizing-brief','view-sizing-brief','application-needs','needs-mode','refresh-needs'].map(id=>[id,{hidden:false,innerHTML:'',textContent:'',focused:false,focus(){this.focused=true}}]));
+const ctx=vm.createContext({fetch:()=>new Promise(()=>{}),document:{getElementById:id=>nodes[id]},enhanceAcronyms:()=>{}});
+for(const file of ['decision-context.js','app.js','report.js'])vm.runInContext(fs.readFileSync('studio/'+file,'utf8'),ctx);
+vm.runInContext('model='+fs.readFileSync('studio/model.json','utf8'),ctx);
+vm.runInContext("state.application={users:'transaction',compute:'appliance',demandProfile:'steady'};structuredRequirements()",ctx);
+function sizingRows(){return vm.runInContext('reportSections().find(([heading])=>heading==="Solution profile")[1].filter(item=>item.question.startsWith("Additional information and sizing"))',ctx);}
+assert.equal(sizingRows().length,0,'Untouched automatic sizing guidance is omitted from PDF sections');
+assert.ok(!vm.runInContext('state.application.needs',ctx).includes('Illustrative example'),'Visible examples never enter the assessment data');
+const initial=vm.runInContext('state.application.needs',ctx);
+vm.runInContext('toggleSizingEditor(true)',ctx);
+assert.equal(nodes['sizing-brief-view'].hidden,true);assert.equal(nodes['sizing-brief-editor'].hidden,false);assert.equal(nodes['application-needs'].focused,true);
+ctx.entered='Business volumes: 800 requests/s. Owner: Operations. <script>plain note</script>';
+vm.runInContext('editNeeds(entered);state.application.compute="gpu";syncSuggestedNeeds();toggleSizingEditor(false)',ctx);
+assert.equal(vm.runInContext('state.application.needs',ctx),ctx.entered,'Profile changes preserve the user-entered sizing text');
+assert.equal(sizingRows()[0].answer,ctx.entered,'The PDF receives the exact entered text');
+assert.match(nodes['sizing-brief-view'].innerHTML,/&lt;script&gt;/);assert.ok(!nodes['sizing-brief-view'].innerHTML.includes('<script>'));
+vm.runInContext("editNeeds('')",ctx);assert.equal(sizingRows().length,0,'Cleared sizing information cannot fall back to the default in a PDF');
+vm.runInContext("editNeeds('To confirm with the vendor; owner: Operations')",ctx);assert.equal(sizingRows()[0].answer,'To confirm with the vendor; owner: Operations','User-entered uncertainty remains useful report information');
+vm.runInContext('editNeeds(suggestedNeeds())',ctx);assert.equal(sizingRows().length,0,'An unchanged default is omitted even after opening the editor');
+ctx.entered=initial+'\n\nValidated target: 800 requests/s.';vm.runInContext('editNeeds(entered)',ctx);assert.equal(sizingRows()[0].answer,ctx.entered,'An added sizing detail is retained with the edited brief');
+console.log('Sizing checks passed: editable formatted view, escaped text, preserved user edits, examples excluded from assessment data and untouched/cleared defaults excluded from PDF.');
+
+// The same PDF rule covers every free-text box, including explicit uncertainty entered by the user.
+vm.runInContext('state.application={};state.requirements={};state.decision={};needsEdited=false;structuredRequirements()',ctx);
+const empty=vm.runInContext('reportSections()',ctx);
+assert.ok(!empty.some(([heading])=>heading==='Decision record'||heading==='Supporting requirement information and evidence'));
+assert.ok(!empty.find(([heading])=>heading==='Solution profile')[1].some(item=>/Purpose|Data labels|RTO|RPO|Jurisdiction|Latency|Dependencies|Additional information/.test(item.question)));
+vm.runInContext("state.application.capability='User purpose';state.application.rto='To confirm with continuity owner';state.requirements.costEvidence='User cost reference';state.requirements.operatingEvidence='User operating note';state.decision.rationale='User rationale';state.decision.owner='User decision owner'",ctx);
+let entered=vm.runInContext('reportSections()',ctx);
+for(const value of ['User purpose','To confirm with continuity owner','User cost reference','User operating note','User rationale','User decision owner'])assert.ok(JSON.stringify(entered).includes(value),value+' is included exactly as entered');
+const evidence=entered.find(([heading])=>heading==='Supporting requirement information and evidence')[1];assert.equal(evidence.length,2);
+assert.equal(entered.find(([heading])=>heading==='Decision record')[1].filter(item=>typeof item==='object').length,2);
+vm.runInContext("state.application.capability=' ';state.application.rto='';state.requirements.costEvidence='';state.requirements.operatingEvidence='';state.decision.rationale='';state.decision.owner=''",ctx);
+entered=vm.runInContext('reportSections()',ctx);assert.ok(!entered.some(([heading])=>heading==='Decision record'||heading==='Supporting requirement information and evidence'));
+assert.ok(!entered.find(([heading])=>heading==='Solution profile')[1].some(item=>/Purpose|RTO/.test(item.question)));
+console.log('All free-text PDF checks passed: empty/cleared fields are omitted across profile, supporting evidence and decision notes; actual entries and user-authored uncertainty are retained.');
