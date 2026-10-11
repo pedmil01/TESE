@@ -11,6 +11,7 @@ function reportSections(){
  const decisionEntries=[['rationale','Rationale / architecture notes'],['conditions','Conditions and evidence references'],['owner','Decision owner'],['platform','Platform / technology owner'],['operator','Technical operator / provider'],['authority','Approval authority'],['review','Review trigger / date']].flatMap(([key,label])=>enteredPair(label,d[key]));
  return [
   ['Preliminary assessment scope',assessmentNotice],
+  ...(typeof aiIntakeReportSection==='function'&&aiIntakeReportSection()?[aiIntakeReportSection()]:[]),
   ['Decision summary',[
    ...(hasText(a.name)||hasText(a.id)?[[...(hasText(a.name)?['Solution: '+a.name]:[]),...(hasText(a.id)?['ID: '+a.id]:[])].join(' | ')]:[]),
    ...(hasText(a.owner)?['Institutional service owner: '+a.owner]:[]),

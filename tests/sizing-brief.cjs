@@ -8,18 +8,24 @@ function sizingRows(){return vm.runInContext('reportSections().find(([heading])=
 assert.equal(sizingRows().length,0,'Untouched automatic sizing guidance is omitted from PDF sections');
 assert.ok(!vm.runInContext('state.application.needs',ctx).includes('Illustrative example'),'Visible examples never enter the assessment data');
 const initial=vm.runInContext('state.application.needs',ctx);
-vm.runInContext('toggleSizingEditor(true)',ctx);
-assert.equal(nodes['sizing-brief-view'].hidden,true);assert.equal(nodes['sizing-brief-editor'].hidden,false);assert.equal(nodes['application-needs'].focused,true);
+const first=vm.runInContext('structuredRequirements()',ctx);
+assert.match(first,/<div id="sizing-brief-view"[^>]*>[^]*Illustrative example:/);
+assert.ok(!/<div id="sizing-brief-(view|editor)"[^>]*hidden/.test(first),'Guidance and editor are both visible');
+assert.match(first,/<textarea[^>]*id="application-needs"[^>]*><\/textarea>/,'Untouched guidance does not occupy the answer box');
 ctx.entered='Business volumes: 800 requests/s. Owner: Operations. <script>plain note</script>';
-vm.runInContext('editNeeds(entered);state.application.compute="gpu";syncSuggestedNeeds();toggleSizingEditor(false)',ctx);
+vm.runInContext('editNeeds(entered);state.application.compute="gpu";syncSuggestedNeeds()',ctx);
 assert.equal(vm.runInContext('state.application.needs',ctx),ctx.entered,'Profile changes preserve the user-entered sizing text');
 assert.equal(sizingRows()[0].answer,ctx.entered,'The PDF receives the exact entered text');
-assert.match(nodes['sizing-brief-view'].innerHTML,/&lt;script&gt;/);assert.ok(!nodes['sizing-brief-view'].innerHTML.includes('<script>'));
+const editing=vm.runInContext('structuredRequirements()',ctx);
+assert.match(editing,/&lt;script&gt;/);assert.ok(!editing.includes('<script>'));
+assert.ok(editing.includes('Illustrative example:')&&editing.includes('supported accelerator model'),'Guidance remains available after typing and changes to profile choices');
+assert.ok(!/<div id="sizing-brief-(view|editor)"[^>]*hidden/.test(editing));
+assert.ok(!editing.match(/<div id="sizing-brief-view"[^]*?<div id="sizing-brief-editor"/)[0].includes('Business volumes: 800'),'User answers cannot replace the reference');
 vm.runInContext("editNeeds('')",ctx);assert.equal(sizingRows().length,0,'Cleared sizing information cannot fall back to the default in a PDF');
 vm.runInContext("editNeeds('To confirm with the vendor; owner: Operations')",ctx);assert.equal(sizingRows()[0].answer,'To confirm with the vendor; owner: Operations','User-entered uncertainty remains useful report information');
 vm.runInContext('editNeeds(suggestedNeeds())',ctx);assert.equal(sizingRows().length,0,'An unchanged default is omitted even after opening the editor');
 ctx.entered=initial+'\n\nValidated target: 800 requests/s.';vm.runInContext('editNeeds(entered)',ctx);assert.equal(sizingRows()[0].answer,ctx.entered,'An added sizing detail is retained with the edited brief');
-console.log('Sizing checks passed: editable formatted view, escaped text, preserved user edits, examples excluded from assessment data and untouched/cleared defaults excluded from PDF.');
+console.log('Sizing checks passed: persistent reference alongside editing, escaped text, preserved user edits, examples excluded from assessment data and untouched/cleared defaults excluded from PDF.');
 
 // The same PDF rule covers every free-text box, including explicit uncertainty entered by the user.
 vm.runInContext('state.application={};state.requirements={};state.decision={};needsEdited=false;structuredRequirements()',ctx);
