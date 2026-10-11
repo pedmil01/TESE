@@ -63,12 +63,13 @@ function outstandingRequirements(r,placementMissing=[]){
 function decisionStatuses(r){
  return [
   ['Placement',r.placementConflicts.length?'Requirements conflict':model.zones.find(z=>z.id===r.id)?.name||'Unresolved'],
-  ['Proposed Operating model',model.operations.find(o=>o.id===r.operative)?.name||'Unresolved']
+  ['Proposed Operating model',r.operatingConflicts.length?'Requirements conflict':model.operations.find(o=>o.id===r.operative)?.name||'Unresolved']
  ];
 }
 function statusExplanation(kind,r=recommendation()){
  let reasons=[];
  if(kind==='placement'){
+  reasons.push(...r.placementConflicts);
   reasons.push(...r.placementMissing.map(item=>'Missing or unconfirmed: '+item));
   reasons.push(...r.checks.filter(item=>/Both local and cloud execution remain possible|location is indicated/i.test(item)));
   if(!reasons.length)reasons.push('The current answers do not establish a supported location and service-model combination. Confirm the software architecture, execution restrictions and a location differentiator.');
@@ -121,13 +122,16 @@ function placementResolutionTargets(r){
  if(r.checks.some(item=>/Both local and cloud execution remain possible/i.test(item)))return [assessmentTarget('economics'),assessmentTarget('demand'),evidenceTarget('costEvidence')];
  return [assessmentTarget('platform'),assessmentTarget('delivery')];
 }
-function conflictResolutionTargets(detail){
+function conflictResolutionTargets(detail,r=recommendation()){
+ const conflict=r.conflictDetails.find(item=>detail.includes(item.detail));
+ if(conflict)return conflict.targets;
  if(/AI/i.test(detail))return [assessmentTarget('aiData'),assessmentTarget('embeddedAI'),assessmentTarget('aiInfrastructure'),profileTarget('executionRestriction')];
  if(/sourcing/i.test(detail))return [assessmentTarget('sourcing'),assessmentTarget('skills'),assessmentTarget('control')];
  if(/privileged|Retained internal/i.test(detail))return [assessmentTarget('control'),assessmentTarget('skills'),evidenceTarget('operatingEvidence')];
  return [assessmentTarget('delivery'),assessmentTarget('hybrid'),assessmentTarget('local'),assessmentTarget('cloud'),profileTarget('executionRestriction'),profileTarget('sovereigntyRestriction')];
 }
 function statusExplanationItems(kind,r=recommendation()){
+ if(kind==='placement'||kind==='operating')return decisionDiagnostics(kind,r);
  return statusExplanation(kind,r).map(detail=>{
   let targets=[];
   const outstanding=r.outstanding.find(item=>detail===item.detail||detail===item.category+': '+item.detail);
@@ -147,14 +151,56 @@ function statusExplanationItems(kind,r=recommendation()){
  });
 }
 function resolutionLinks(targets){return `<div class="requirement-resolution-links">${targets.map(t=>`<a href="#${esc(t.id)}" class="requirement-resolution-link" data-requirement-step="${t.step}" data-requirement-target="${esc(t.id)}">${esc(t.label)}</a>`).join('')}</div>`;}
-function statusExplanationHtml(kind,r=recommendation()){return `<ul>${statusExplanationItems(kind,r).map(item=>`<li>${esc(item.detail)}${resolutionLinks(item.targets)}</li>`).join('')}</ul>`;}
+function diagnosticReference(target,r=state.requirements){
+ if(target.id.startsWith('q-')){
+  const key=target.id.slice(2),index=questions.findIndex(q=>q.key===key),q=questions[index];
+  return {label:'Q'+(index+1)+'. '+q.label,answer:q.options.find(([value])=>value===r[key])?.[1]||'Not answered',target};
+ }
+ const key=target.id.replace(/^(profile|application|evidence)-/,'');
+ const option=target.step===0?profileOptions[key]:null;
+ return {label:option?.label||target.label.replace(/^(Review|Provide) /,''),answer:option?option.options.find(([value])=>value===state.application[key])?.[1]||'Not answered':String((target.step===0?state.application:r)[key]||'Not provided'),target};
+}
+function decisionDiagnostic(kinds,title,detail,action,keys=[],profileKeys=[],r=state.requirements,extraTargets=[]){
+ const targets=[...keys.map(assessmentTarget),...profileKeys.map(profileTarget),...extraTargets].filter((t,i,all)=>all.findIndex(other=>other.id===t.id&&other.step===t.step)===i);
+ return {kinds,title,detail,action,targets,answers:targets.filter(t=>/^(q|profile|application)-/.test(t.id)).map(t=>diagnosticReference(t,r)),type:'unresolved'};
+}
+function decisionDiagnostics(kind,r=recommendation()){
+ const items=r.conflictDetails.filter(item=>item.kinds.includes(kind));
+ if(kind==='placement'&&!r.id){
+  if(r.placementMissing.length)items.push(decisionDiagnostic(['placement'],'Required placement inputs need confirmation','Missing or unconfirmed: '+r.placementMissing.join('; ')+'.','Confirm the listed decision inputs with their requirement owners. Any confirmed conflicts must also be resolved; supporting evidence remains a separate validation requirement.',[],[],state.requirements,r.placementMissing.flatMap(detail=>requirementTargets('Placement inputs',detail)).filter(t=>t.id!=='evidence-aiFlowDetails')));
+  for(const detail of r.checks.filter(item=>/Both local and cloud execution remain possible|location is indicated/i.test(item))){
+   if(/Both local and cloud execution remain possible/i.test(detail))items.push(decisionDiagnostic(['placement'],'No basis yet to choose local or cloud',detail,'Compare equivalent lifecycle costs and record the assessor conclusion, or establish a genuine execution-location requirement. Steady demand and comparable costs alone do not select a location.',['demand','economics'],[],state.requirements,[evidenceTarget('costEvidence'),evidenceTarget('costPeriod')]));
+   else if(/local location is indicated/i.test(detail))items.push(decisionDiagnostic(['placement'],'Supported local deployment is unconfirmed',detail,'Confirm a supported local platform or self-managed edition with the product owner, then update the hosting-pattern answer.',['delivery','platform']));
+   else items.push(decisionDiagnostic(['placement'],'Supported cloud deployment is unconfirmed',detail,'Confirm a supported external-cloud hosting pattern with the product owner, then update the hosting-pattern answer.',['delivery','platform']));
+  }
+  if(!items.length)items.push(decisionDiagnostic(['placement'],'Supported placement is unconfirmed','The answers do not establish a supported location and service-model combination.','Confirm the delivery architecture, supported hosting pattern and execution requirements.',['delivery','platform','local','cloud']));
+ }
+ if(kind==='operating'&&!r.operative){
+  const keys=['control','skills','sourcing'].filter(key=>!state.requirements[key]||state.requirements[key]==='unknown');
+  if(keys.length)items.push(decisionDiagnostic(['operating'],'Operating decision inputs need confirmation','The proposed operating model needs confirmed operational control, internal skills / coverage and sourcing permission.','Confirm only the listed unanswered operating inputs. Supporting evidence can be added separately for specialist validation.',keys));
+  if(state.requirements.delivery==='saas'&&!r.id){
+   const placementTargets=r.conflictDetails.filter(item=>item.kinds.includes('placement')).flatMap(item=>item.targets);
+   items.push(decisionDiagnostic(['operating'],'SaaS operation depends on a compatible placement','A SaaS operating arrangement cannot be proposed until its placement requirements and provider / institutional responsibility boundary are resolved.','Resolve the placement blockers shown above, then confirm the provider and tenant-administration responsibilities.',[],[],state.requirements,placementTargets.length?placementTargets:placementResolutionTargets(r)));
+  }
+  if(!items.length)items.push(decisionDiagnostic(['operating'],'Operating responsibility boundary is unconfirmed','The answers do not establish a compatible operational-control, capability and sourcing arrangement.','Confirm who operates each required responsibility and record matching control, skills and sourcing answers.',['control','skills','sourcing']));
+ }
+ return items;
+}
+function diagnosticHtml(item){return `<article class="decision-diagnostic"><h4>${esc(item.title)}</h4>${item.answers.length?`<ul class="diagnostic-answers">${item.answers.map(answer=>`<li><strong>${esc(answer.label)}</strong><span>Selected: ${esc(answer.answer)}</span></li>`).join('')}</ul>`:''}<p><strong>Why:</strong> ${esc(item.detail)}</p><p><strong>How to resolve:</strong> ${esc(item.action)}</p>${resolutionLinks(item.targets)}</article>`;}
+function decisionGuidanceHtml(r){
+ const conflicts=r.conflictDetails;
+ const unresolved=['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved'));
+ return `${conflicts.length?`<section class="proposal-conflicts" aria-label="Confirmed requirement conflicts"><h3>Confirmed requirement conflicts</h3>${conflicts.map(diagnosticHtml).join('')}</section>`:''}${unresolved.length?`<section class="proposal-unresolved" aria-label="Why decisions are unresolved"><h3>What is unresolved and how to resolve it</h3>${unresolved.map(item=>diagnosticHtml({...item,title:(item.kinds.includes('placement')?'Placement: ':'Operating model: ')+item.title})).join('')}</section>`:''}`;
+}
+function diagnosticReportLines(item){return [item.title,...item.answers.map(answer=>answer.label+' — selected: '+answer.answer),'Why: '+item.detail,'How to resolve: '+item.action];}
+function statusExplanationHtml(kind,r=recommendation()){return kind==='placement'||kind==='operating'?statusExplanationItems(kind,r).map(diagnosticHtml).join(''):`<ul>${statusExplanationItems(kind,r).map(item=>`<li>${esc(item.detail)}${resolutionLinks(item.targets)}</li>`).join('')}</ul>`;}
 function statusFields(r){
  const kinds={'Placement':'placement','Proposed Operating model':'operating'};
  return `<dl class="decision-statuses">${decisionStatuses(r).map(([label,value])=>{
-  const kind=kinds[label],unresolved=kind&&value.startsWith('Unresolved');
-  const text=unresolved?`<button type="button" class="status-explanation-trigger" data-status-kind="${kind}" aria-label="Why ${esc(label.toLowerCase())} is unresolved" aria-expanded="false" aria-haspopup="dialog" aria-controls="status-explanation-tooltip">Unresolved<span class="status-help-icon" aria-hidden="true">?</span></button>${esc(value.slice('Unresolved'.length))}`:esc(value);
-  return `<div><dt>${esc(label)}</dt><dd class="${label==='Placement'&&r.placementConflicts.length?'conflict-value':''}">${text}</dd></div>`;
- }).join('')}</dl><p class="meta">Hover over “Unresolved”, or press Enter / tap it, to see why and open links to the relevant fields or validation requirements. A placement proposal can exist while the proposed operating model is unresolved. All proposals require specialist validation and institutional approval.</p>`;
+  const kind=kinds[label],blocked=kind&&(value.startsWith('Unresolved')||value==='Requirements conflict'),conflict=value==='Requirements conflict';
+  const text=blocked?`<button type="button" class="status-explanation-trigger" data-status-kind="${kind}" data-status-state="${conflict?'conflict':'unresolved'}" aria-label="${conflict?'Explain the '+esc(label.toLowerCase())+' conflict':'Why '+esc(label.toLowerCase())+' is unresolved'}" aria-expanded="false" aria-haspopup="dialog" aria-controls="status-explanation-tooltip">${esc(value)}<span class="status-help-icon" aria-hidden="true">?</span></button>`:esc(value);
+  return `<div><dt>${esc(label)}</dt><dd class="${conflict?'conflict-value':''}">${text}</dd></div>`;
+ }).join('')}</dl><p class="meta">Conflict and unresolved statuses show their causes below. Tap a status for its explanation, then follow a link to review the relevant answer. Placement and operating proposals are assessed separately. All proposals require specialist validation and institutional approval.</p>`;
 }
 function outstandingHtml(r){
  const categories=[...new Set(r.outstanding.map(x=>x.category))];

@@ -20,7 +20,7 @@ function showStatusTip(anchor){
   document.body.append(statusTip);
  }
  const labels={placement:'placement',eligibility:'eligibility',operating:'the operating model'};
- statusTip.innerHTML=`<strong id="status-tooltip-heading">Why ${esc(labels[anchor.dataset.statusKind])} is unresolved</strong>${statusExplanationHtml(anchor.dataset.statusKind)}<p>Choose a link to review the relevant field or validation requirement. Press Escape or tap outside to close.</p>`;
+ statusTip.innerHTML=`<div class="status-popup-heading"><strong id="status-tooltip-heading">${anchor.dataset.statusState==='conflict'?'What conflicts in '+esc(labels[anchor.dataset.statusKind]):'Why '+esc(labels[anchor.dataset.statusKind])+' is unresolved'}</strong><button type="button" class="status-popup-close" aria-label="Close explanation">×</button></div>${statusExplanationHtml(anchor.dataset.statusKind)}<p>Choose a link to review the relevant field or validation requirement. Press Escape or tap outside to close.</p>`;
  statusTip.hidden=false;statusTip.scrollTop=0;statusTipAnchor=anchor;
  anchor.setAttribute('aria-describedby',statusTip.id);anchor.setAttribute('aria-expanded','true');
  const rect=anchor.getBoundingClientRect(),tip=statusTip.getBoundingClientRect(),margin=8;
@@ -47,6 +47,7 @@ function jumpToRequirement(targetStep,targetId){
  setTimeout(()=>target.classList.remove('requirement-focus'),2200);
 }
 document.addEventListener('click',event=>{
+ if(event.target.closest('.status-popup-close')){event.preventDefault();hideStatusTip(true);return;}
  const link=event.target.closest('.requirement-resolution-link');
  if(link){event.preventDefault();jumpToRequirement(link.dataset.requirementStep,link.dataset.requirementTarget);return;}
  const anchor=event.target.closest('.status-explanation-trigger');

@@ -1,0 +1,38 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const events={};let tip;
+const document={activeElement:null,addEventListener:(name,handler)=>events[name]=handler,body:{append:()=>{}},createElement:()=>tip={style:{},hidden:true,setAttribute:()=>{},addEventListener:()=>{},getBoundingClientRect:()=>({width:470,height:400}),contains:()=>false,querySelector:()=>null}};
+const ctx=vm.createContext({document,window:{addEventListener:()=>{}},fetch:()=>new Promise(()=>{}),setTimeout,clearTimeout,innerWidth:1200,innerHeight:800,hideAcronymTip:()=>{}});
+for(const file of ['decision-context.js','app.js','status-tooltips.js'])vm.runInContext(fs.readFileSync('studio/'+file,'utf8'),ctx);
+vm.runInContext('model='+fs.readFileSync('studio/model.json','utf8'),ctx);
+const base={delivery:'container',criticality:'medium',local:'no',cloud:'yes',hybrid:'no',proximity:'flexible',hardware:'standard',economics:'cloud',demand:'steady',control:'shared',skills:'partial',sourcing:'yes'};
+ctx.application={financialCriticality:'noncritical',executionRestriction:'flexible',sovereigntyRestriction:'conditional'};
+vm.runInContext('state.application=application',ctx);
+function open(kind,status,overrides){
+ const anchor={dataset:{statusKind:kind,statusState:status},attributes:{},isConnected:true,focused:false,setAttribute(key,value){this.attributes[key]=value},removeAttribute(key){delete this.attributes[key]},getBoundingClientRect:()=>({left:60,bottom:130,top:90}),focus(){this.focused=true}};
+ ctx.anchor=anchor;ctx.input={...base,...overrides};
+ vm.runInContext('hideStatusTip();state.requirements=input;showStatusTip(anchor)',ctx);
+ assert.equal(tip.hidden,false);assert.equal(anchor.attributes['aria-expanded'],'true');
+ assert.equal(anchor.attributes['aria-describedby'],'status-explanation-tooltip');
+ return anchor;
+}
+open('placement','unresolved',{cloud:'unknown'});
+assert.match(tip.innerHTML,/Why placement is unresolved/);
+assert.match(tip.innerHTML,/Missing or unconfirmed/);
+assert.match(tip.innerHTML,/href="#q-cloud"/);
+assert.match(tip.innerHTML,/How to resolve:/);
+open('operating','unresolved',{skills:'unknown'});
+assert.match(tip.innerHTML,/Why the operating model is unresolved/);
+assert.match(tip.innerHTML,/href="#q-skills"/);
+assert.ok(!tip.innerHTML.includes('href="#evidence-operatingEvidence"'),'Optional evidence must not be presented as the unresolved cause');
+const conflict=open('placement','conflict',{cloud:'no',embeddedAI:'yes',aiData:'external'});
+assert.match(tip.innerHTML,/What conflicts in placement/);
+assert.match(tip.innerHTML,/Q3\./);assert.match(tip.innerHTML,/Q22\./);
+assert.match(tip.innerHTML,/Selected: Prohibited for this solution/);
+assert.match(tip.innerHTML,/href="#q-cloud"/);assert.match(tip.innerHTML,/href="#q-aiData"/);
+assert.match(tip.innerHTML,/Close explanation/);
+events.click({target:{closest:selector=>selector==='.status-popup-close'?{}:null},preventDefault:()=>{}});
+assert.equal(tip.hidden,true);assert.equal(conflict.attributes['aria-expanded'],'false');assert.equal(conflict.focused,true);
+const unknown=open('operating','unresolved',{skills:'unknown'});
+events.keydown({key:'Escape'});
+assert.equal(tip.hidden,true);assert.equal(unknown.focused,true);
+console.log('Pop-up interaction checks passed: both unresolved statuses and conflicts open actionable explanations, with exact links, accessible state and close/Escape focus restoration.');

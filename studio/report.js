@@ -11,8 +11,12 @@ function reportSections(){
    'Solution: '+text(a.name)+' | ID: '+text(a.id),
    'Institutional service owner: '+text(a.owner),
    ...decisionStatuses(r).map(([label,value])=>label+': '+value),
+   ...r.conflictDetails.map(item=>'Conflict: '+item.title+'. '+item.answers.map(answer=>answer.label.split('. ')[0]+': '+answer.answer).join(' | ')),
+   ...['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').map(item=>(kind==='placement'?'Placement':'Operating model')+' unresolved: '+item.detail)),
    'Placement and the proposed operating model are preliminary recommendations. Outstanding requirements require specialist validation; final decisions require institutional approval.'
   ]],
+  ['Confirmed requirement conflicts',r.conflictDetails.length?r.conflictDetails.flatMap(diagnosticReportLines):['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
+  ...(['placement','operating'].some(kind=>decisionDiagnostics(kind,r).some(item=>item.type==='unresolved'))?[['Unresolved decisions — causes and next steps',['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').flatMap(item=>diagnosticReportLines({...item,title:(kind==='placement'?'Placement: ':'Operating model: ')+item.title})))]]:[]),
   ...(typeof aiReportSection==='function'?[aiReportSection()]:[]),
   ['Recommendation basis',[
    ...(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm required inputs, restrictions and supported architecture.']),
@@ -23,7 +27,6 @@ function reportSections(){
    'Applied rules: '+r.appliedRules.join(', ')+'. See the recommendation-rules table below.'
   ]],
   ['Outstanding requirements — missing / incomplete information',r.outstanding.length?r.outstanding.map(x=>x.category+': '+x.detail):['Information has been supplied for the characterized requirements. Specialist evidence validation remains outstanding.']],
-  ['Confirmed requirement conflicts',r.issues.length?r.issues:['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
   ['Proposed operating model — basis and boundary',[
    ...r.opReasons,
    'Supplemental support: '+r.support,

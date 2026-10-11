@@ -73,7 +73,7 @@ for(const text of ['Placement','Proposed Operating model','Cloud candidate sugge
 }
 for(const text of ['Comparable lifecycle costs','assessment period','Baseline demand','Peak demand','Scaling capability','Capacity assumptions'])assert.ok(recoveryCase.html.includes(text));
 for(const key of ['control','skills','sourcing'])assert.equal(recommend({...base,[key]:'unknown'}).operative,null);
-assert.equal(recommend({...base,operatingEvidence:''}).operative,null);
+assert.equal(recommend({...base,operatingEvidence:''}).operative,'CO-MANAGED','Optional supporting evidence must not suppress a proposal supported by the operating answers');
 assert.equal(recommend({...base,delivery:'saas',skills:'unknown'}).operative,null);
 for(const authority of ['A3','A4']){
  const test=renderCase({...base,aiAuthority:authority,aiData:'local'});
@@ -258,3 +258,49 @@ vm.runInContext("answer('cloud','unknown');answer('hardware','unknown')",ctx);
 assert.equal(progressNodes['remaining-requirements-notice'].innerHTML,'');
 assert.equal(progressNodes.progress.textContent,18);
 console.log('Completion notice checks passed: 4/3/2/1/0 thresholds, live counts, linked missing answers, AI applicability and PDF history warning.');
+
+// Replay WL-001 from the supplied report: separate a real AI/location conflict from optional evidence.
+const reported={...allRequirements,cloud:'no',proximity:'hard',platform:'private',economics:'similar',aiInfrastructure:'training',embeddedAI:'none',aiAuthority:'A0',aiData:'external',operatingEvidence:''};
+ctx.application={id:'WL-001',name:'WL-001',owner:'DSI',financialCriticality:'noncritical',executionRestriction:'flexible',sovereigntyRestriction:'conditional'};
+vm.runInContext('state.application=application',ctx);
+const reportedCase=renderCase(reported);
+assert.equal(reportedCase.r.id,null,'External AI must still conflict with the declared cloud prohibition');
+assert.equal(reportedCase.r.operative,'CO-MANAGED','The known operating answers must remain useful despite a placement conflict');
+assert.equal(reportedCase.r.conflictDetails.length,1);
+const reportedConflict=reportedCase.r.conflictDetails[0];
+assert.deepEqual(Array.from(reportedConflict.targets,t=>t.id),['q-aiData','q-cloud','q-proximity','q-aiInfrastructure']);
+for(const key of ['aiData','cloud','proximity','aiInfrastructure']){
+ assert.ok(reportedConflict.answers.some(answer=>answer.target.id==='q-'+key&&answer.answer!=='Not answered'));
+ assert.ok(reportedCase.html.includes('href="#q-'+key+'"'));
+}
+for(const text of ['Q3.','Q5.','Q19.','Q22.','Selected:','Why:','How to resolve:','institution-hosted'])assert.ok(reportedCase.html.includes(text),text+' visible beside the conflict');
+assert.ok(reportedCase.html.includes('data-status-state="conflict"'));
+assert.ok(reportedCase.r.outstanding.some(item=>item.category==='Operating capability'),'Missing operating evidence remains visible for validation');
+assert.ok(!reportedCase.html.includes('Operating model: Operating decision inputs need confirmation'));
+const reportedPdf=reportedCase.sections.find(([heading])=>heading==='Confirmed requirement conflicts')[1];
+for(const text of ['Q3.','Q5.','Q19.','Q22.','selected:','Why:','How to resolve:'])assert.ok(reportedPdf.some(line=>line.includes(text)),text+' in PDF conflict explanation');
+assert.equal(reportedCase.sections[2][0],'Confirmed requirement conflicts','PDF conflict explanations immediately follow the decision summary');
+const resolvedCase=renderCase({...reported,aiData:'local'});
+assert.equal(resolvedCase.r.id,'ONPREM-CAAS','Institution-hosted AI removes the external-processing conflict');
+assert.equal(resolvedCase.r.operative,'CO-MANAGED');
+assert.equal(resolvedCase.r.conflictDetails.length,0);
+
+// Unknown operating answers and genuine capability conflicts name only the fields responsible.
+const missingOperating=renderCase({...base,skills:'unknown',operatingEvidence:''});
+const missingOperatingDiagnostics=vm.runInContext('decisionDiagnostics("operating")',ctx);
+assert.deepEqual(Array.from(missingOperatingDiagnostics[0].targets,t=>t.id),['q-skills']);
+assert.ok(missingOperating.html.includes('Operating model: Operating decision inputs need confirmation'));
+assert.ok(missingOperatingDiagnostics[0].answers[0].answer!=='Not answered','The unknown answer displays its questionnaire option label');
+const incompatibleOperating=renderCase({...base,skills:'limited',sourcing:'no'});
+assert.equal(vm.runInContext('decisionStatuses(recommendation())[1][1]',ctx),'Requirements conflict');
+assert.deepEqual(Array.from(incompatibleOperating.r.conflictDetails[0].targets,t=>t.id),['q-skills','q-sourcing']);
+assert.ok(incompatibleOperating.html.includes('Sourcing prohibition vs internal capability gap'));
+for(const input of routeCases){
+ const test=renderCase(input);
+ assert.equal(test.r.conflictDetails.length,test.r.issues.length,'Every confirmed conflict has a structured explanation');
+ for(const item of test.r.conflictDetails){
+  assert.ok(item.answers.length>=2,'Conflicts identify the answers in opposition');
+  assert.ok(item.action&&item.targets.length,'Each conflict has a corrective action and destinations');
+ }
+}
+console.log('WL-001 diagnostic checks passed: exact conflicting answers/links, corrective actions, independent co-managed proposal, optional evidence gaps and matching PDF explanations.');
