@@ -57,7 +57,7 @@ function applyIntakeResult(result){
  }
  for(const key of ['aiAuthority','aiData'])if(!questionApplies({key}))delete state.requirements[key];
  syncSuggestedNeeds();intakeRecords=records;intakeResult=result;aiAnalysis=null;aiError='';
- if(step>1)step=0;render();return records;
+ step=-1;render();return records;
 }
 function markAiFilledFields(){
  for(const note of document.querySelectorAll('[data-ai-filled-note]')){const control=note.nextElementSibling;if(control)control.setAttribute('aria-describedby',(control.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&!id.startsWith('ai-filled-')).join(' '));note.remove();}
