@@ -62,10 +62,8 @@ function outstandingRequirements(r,placementMissing=[]){
 }
 function decisionStatuses(r){
  return [
-  ['Placement proposal',r.placementConflicts.length?'Requirements conflict':model.zones.find(z=>z.id===r.id)?.name||'Unresolved'],
-  ['Eligibility','Unresolved — specialist validation required.'],
-  ['Proposed operating model',model.operations.find(o=>o.id===r.operative)?.name||'Unresolved'],
-  ['Approval','Pending institutional approval.']
+  ['Placement',r.placementConflicts.length?'Requirements conflict':model.zones.find(z=>z.id===r.id)?.name||'Unresolved'],
+  ['Proposed Operating model',model.operations.find(o=>o.id===r.operative)?.name||'Unresolved']
  ];
 }
 function statusExplanation(kind,r=recommendation()){
@@ -151,11 +149,11 @@ function statusExplanationItems(kind,r=recommendation()){
 function resolutionLinks(targets){return `<div class="requirement-resolution-links">${targets.map(t=>`<a href="#${esc(t.id)}" class="requirement-resolution-link" data-requirement-step="${t.step}" data-requirement-target="${esc(t.id)}">${esc(t.label)}</a>`).join('')}</div>`;}
 function statusExplanationHtml(kind,r=recommendation()){return `<ul>${statusExplanationItems(kind,r).map(item=>`<li>${esc(item.detail)}${resolutionLinks(item.targets)}</li>`).join('')}</ul>`;}
 function statusFields(r){
- const kinds={'Placement proposal':'placement','Eligibility':'eligibility','Proposed operating model':'operating'};
+ const kinds={'Placement':'placement','Proposed Operating model':'operating'};
  return `<dl class="decision-statuses">${decisionStatuses(r).map(([label,value])=>{
   const kind=kinds[label],unresolved=kind&&value.startsWith('Unresolved');
   const text=unresolved?`<button type="button" class="status-explanation-trigger" data-status-kind="${kind}" aria-label="Why ${esc(label.toLowerCase())} is unresolved" aria-expanded="false" aria-haspopup="dialog" aria-controls="status-explanation-tooltip">Unresolved<span class="status-help-icon" aria-hidden="true">?</span></button>${esc(value.slice('Unresolved'.length))}`:esc(value);
-  return `<div><dt>${esc(label)}</dt><dd class="${label==='Placement proposal'&&r.placementConflicts.length?'conflict-value':''}">${text}</dd></div>`;
+  return `<div><dt>${esc(label)}</dt><dd class="${label==='Placement'&&r.placementConflicts.length?'conflict-value':''}">${text}</dd></div>`;
  }).join('')}</dl><p class="meta">Hover over “Unresolved”, or press Enter / tap it, to see why and open links to the relevant fields or validation requirements. A placement proposal can exist while eligibility or the proposed operating model is unresolved. Questionnaire responses never establish eligibility or approval.</p>`;
 }
 function outstandingHtml(r){

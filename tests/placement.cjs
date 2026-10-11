@@ -29,7 +29,7 @@ assert.equal(recommend({...base,skills:'limited'}).operative,'OUTSOURCED-MSP');
 assert.equal(recommend({...base,skills:'partial'}).operative,'CO-MANAGED');
 assert.equal(recommend({...base,criticality:'high'}).id,recommend({...base,criticality:'low'}).id);
 assert.ok(recommend({...base,criticality:'high'}).checks.some(x=>x.includes('critical-service')));
-ctx.input={delivery:'saas'};const html=vm.runInContext('state.requirements=input;proposal()',ctx);assert.ok(html.includes('Outstanding requirements'));assert.ok(html.includes('Placement proposal')&&html.includes('Unresolved'));
+ctx.input={delivery:'saas'};const html=vm.runInContext('state.requirements=input;proposal()',ctx);assert.ok(html.includes('Outstanding requirements'));assert.ok(html.includes('Placement')&&html.includes('Unresolved'));
 assert.equal(recommend(base).status,'PLACEMENT PROPOSAL');
 vm.runInContext("state.application.executionRestriction='local'",ctx);assert.equal(recommend(base).id,'ONPREM-CAAS');
 vm.runInContext("state.application.executionRestriction='flexible';state.application.sovereigntyRestriction='local'",ctx);assert.equal(recommend(base).id,'ONPREM-CAAS');
@@ -59,10 +59,14 @@ assert.equal(recommend({...base,networkExposure:'internet',keyCustody:'instituti
 // Requested acceptance cases, checking both engine output and rendered/report content.
 function renderCase(input){ctx.input=input;vm.runInContext('state.requirements=input',ctx);return vm.runInContext('({r:recommendation(),html:proposal(),result:result(),sections:reportSections()})',ctx);}
 const recoveryCase=renderCase({...base,economics:'unknown',demand:'elastic',recovery:'unknown',skills:'unknown',operatingEvidence:''});
+assert.deepEqual(Array.from(vm.runInContext('decisionStatuses(recommendation())',ctx),row=>row[0]),['Placement','Proposed Operating model']);
+assert.ok(!recoveryCase.html.includes('<dt>Eligibility</dt>')&&!recoveryCase.html.includes('<dt>Approval</dt>'));
+const decisionSummary=recoveryCase.sections.find(([heading])=>heading==='Decision summary')[1];
+assert.ok(!decisionSummary.some(line=>/^(Eligibility|Approval):/.test(line)));
 assert.equal(recoveryCase.r.id,'CLOUD-CAAS');
 assert.equal(recoveryCase.r.operative,null);
 assert.ok(recoveryCase.r.outstanding.some(x=>x.category==='Recovery'&&/not defined/.test(x.detail)));
-for(const text of ['Placement proposal','Eligibility','Proposed operating model','Approval','Unresolved — specialist validation required.','Pending institutional approval.','Cloud candidate suggested by elasticity; economic suitability remains unassessed.','Recovery']){
+for(const text of ['Placement','Proposed Operating model','Cloud candidate suggested by elasticity; economic suitability remains unassessed.','Recovery']){
  assert.ok(recoveryCase.html.replace(/<span class="status-help-icon"[^>]*>.*?<\/span>/g,'').replace(/<[^>]+>/g,'').includes(text),text+' visible beside candidate');
  assert.ok(recoveryCase.result.replace(/<span class="status-help-icon"[^>]*>.*?<\/span>/g,'').replace(/<[^>]+>/g,'').includes(text),text+' visible on recommendation');
  assert.ok(JSON.stringify(recoveryCase.sections).includes(text),text+' visible in PDF sections');
@@ -129,7 +133,7 @@ function explanations(input){ctx.input=input;vm.runInContext('state.requirements
 const missingLocation=explanations({...base,cloud:'unknown'});
 assert.ok(missingLocation.placement.some(x=>x.includes('external cloud processing')));
 assert.ok(missingLocation.html.includes('data-status-kind="placement"'));
-assert.ok(missingLocation.html.includes('data-status-kind="eligibility"'));
+assert.ok(!missingLocation.html.includes('data-status-kind="eligibility"'));
 assert.ok(!missingLocation.html.includes('data-status-kind="operating"'));
 const noDifferentiator=explanations({...base,economics:'unknown',demand:'steady'});
 assert.ok(noDifferentiator.placement.some(x=>x.includes('steady demand alone does not choose a location')));
@@ -144,9 +148,9 @@ const suppliedAnswers=explanations({...base,recovery:'yes',aiInfrastructure:'non
 assert.ok(suppliedAnswers.eligibility.some(x=>x.includes('Supplying every answer does not confirm eligibility')));
 assert.ok(suppliedAnswers.eligibility.some(x=>x.includes('RTO')));
 assert.ok(suppliedAnswers.eligibility.some(x=>x.includes('Data sensitivity and security controls')&&x.includes('Data and control sovereignty')&&x.includes('Recovery, dependencies and reversibility')));
-assert.ok(suppliedAnswers.html.includes('aria-label="Why eligibility is unresolved"'));
-assert.ok(suppliedAnswers.html.includes('type="button"'));
-assert.ok(suppliedAnswers.html.includes('aria-expanded="false"'));
+assert.ok(!suppliedAnswers.html.includes('aria-label="Why eligibility is unresolved"'));
+assert.ok(missingLocation.html.includes('type="button"'));
+assert.ok(missingLocation.html.includes('aria-expanded="false"'));
 assert.ok(!suppliedAnswers.html.includes('data-status-kind="placement"'));
 ctx.input={...base,cloud:'unknown',operatingEvidence:'<script>alert(1)</script>'};vm.runInContext('state.requirements=input',ctx);
 assert.ok(!vm.runInContext('statusFields(recommendation())',ctx).includes('<script>'));

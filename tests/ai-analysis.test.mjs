@@ -14,6 +14,8 @@ test('all inputs reach Responses and advice cannot expose credentials or become 
  assert.deepEqual(JSON.parse(sent.input),assessment);assert.equal(sent.store,false);assert.equal(sent.model,'gpt-5.4-mini');assert.ok(!sent.tools);
  assert.match(sent.instructions,/untrusted assessment data/);assert.match(sent.instructions,/HOURS/);assert.match(sent.instructions,/MINUTES/);assert.match(sent.instructions,/A4 Bounded Autonomy/);assert.match(sent.instructions,/eligibility unresolved/);
  assert.equal(output.provider,'OpenAI');assert.ok(!JSON.stringify(output).includes('test-only-key'));
+ assert.match(sent.instructions,/Eligibility scope and evidence review/);
+ assert.match(sent.instructions,/do not add an eligibility or approval status to the proposal/);
 });
 test('the hard word limit is enforced independently of model instructions',()=>{
  const result=limitWords(Array(2500).fill('word').join(' '));assert.equal(result.text.split(/\s+/).length,2000);assert.equal(result.wordCount,2000);assert.equal(result.shortened,true);
@@ -33,6 +35,8 @@ test('changing any optional text invalidates the AI report; HTML-like model cont
  vm.runInContext('model='+fs.readFileSync('studio/model.json','utf8'),context);
  vm.runInContext("state.application={name:'Test',rto:'2',rpo:'15'};state.requirements={};state.decision={};aiAccept({text:'<script>alert(1)</script> Preliminary advice.',model:'gpt-5.4-mini',generatedAt:'2026-10-11T14:00:00Z'},aiSnapshot())",context);
  assert.equal(vm.runInContext('aiCurrent()',context),true);
+ assert.match(vm.runInContext('aiRecommendationCard()',context),/reviews eligibility scope and supporting evidence/);
+ assert.ok(!vm.runInContext('proposal()',context).includes('<dt>Eligibility</dt>'));
  assert.match(vm.runInContext('aiRecommendationCard()',context),/&lt;script&gt;/);
  assert.ok(vm.runInContext("JSON.stringify(reportSections()).includes('<script>alert(1)</script> Preliminary advice.')",context));
  vm.runInContext("state.decision.conditions='New optional explanation'",context);

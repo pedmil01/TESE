@@ -11,7 +11,7 @@ function reportSections(){
    'Solution: '+text(a.name)+' | ID: '+text(a.id),
    'Institutional service owner: '+text(a.owner),
    ...decisionStatuses(r).map(([label,value])=>label+': '+value),
-   'A placement proposal can exist while eligibility or the proposed operating model is unresolved. Questionnaire responses never establish eligibility or approval.'
+   'Placement and the proposed operating model are preliminary recommendations. Outstanding requirements require specialist validation; final decisions require institutional approval.'
   ]],
   ...(typeof aiReportSection==='function'?[aiReportSection()]:[]),
   ['Recommendation basis',[
@@ -22,7 +22,7 @@ function reportSections(){
    ...(r.intendedAiAuthority?['Intended AI authority: '+r.intendedAiAuthority+'. Recorded intent does not authorize execution.']:[]),
    'Applied rules: '+r.appliedRules.join(', ')+'. See the recommendation-rules table below.'
   ]],
-  ['Outstanding requirements — missing / incomplete information',r.outstanding.length?r.outstanding.map(x=>x.category+': '+x.detail):['Information has been supplied for the characterized requirements. Specialist evidence validation remains outstanding; eligibility is unresolved.']],
+  ['Outstanding requirements — missing / incomplete information',r.outstanding.length?r.outstanding.map(x=>x.category+': '+x.detail):['Information has been supplied for the characterized requirements. Specialist evidence validation remains outstanding.']],
   ['Confirmed requirement conflicts',r.issues.length?r.issues:['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
   ['Proposed operating model — basis and boundary',[
    ...r.opReasons,
@@ -31,7 +31,7 @@ function reportSections(){
    'Institutional service ownership and accountability remain internal under every operating model.'
   ]],
   ['Specialist validation and institutional approval',[
-   'Infrastructure specialists, solution owners and relevant subject-matter experts must validate the proposal, outstanding requirements, conflicts and supporting evidence. Mandatory eligibility validation remains outside this questionnaire.',
+   'Infrastructure specialists, solution owners and relevant subject-matter experts must validate the proposal, outstanding requirements, conflicts and supporting evidence. Detailed evidence validation remains outside this questionnaire.',
    'Detailed technical, security, sovereignty, resilience and economic assessment must be proportionate to solution criticality, complexity and risk. Final placement and deployment remain subject to institutional governance and approval.',
    ...r.checks,
    'Verify product support, licensing, operational interfaces and responsibility boundaries. Verify the end-to-end recovery, security, sovereignty, connectivity and exit / reversibility controls for the proposed arrangement.',
@@ -53,7 +53,7 @@ function reportSections(){
    pair('Rationale / architecture notes',d.rationale),pair('Conditions and evidence references',d.conditions),
    pair('Decision owner',d.owner),pair('Platform / technology owner',d.platform),
    pair('Technical operator / provider',d.operator),pair('Approval authority',d.authority),pair('Review trigger / date',d.review),
-   'Naming an approval authority or entering decision notes does not grant approval. Approval status remains Pending institutional approval.'
+   'Naming an approval authority or entering decision notes does not grant approval. Final decisions require a separate institutional approval process.'
   ]],
   ['Recommendation method and limitations',[
    methodDescription,
