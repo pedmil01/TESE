@@ -211,3 +211,50 @@ assert.ok(recoveryReport.some(item=>item.question==='RPO — acceptable data-los
 const publicContent=vm.runInContext('JSON.stringify([profile(),assessment(),result(),framework(),statusExplanation("eligibility"),reportSections()])',ctx);
 assert.ok(!/thesis|Tese_|§|B\.[2-7]|\bRR[1-6]\b|\bAI[1-9][0-9]?\b/i.test(publicContent));
 console.log('Content checks passed: explicit RTO hours and RPO minutes in profile/report; thesis citations and criterion references removed without dropping validation requirements.');
+
+// The final three unanswered requirements are named, linked and updated live.
+const allRequirements={...base,recovery:'yes',networkExposure:'internal',securityIsolation:'segmented',keyCustody:'institution',trustedRecovery:'both',aiInfrastructure:'inference',embeddedAI:'none',aiAuthority:'none',aiData:'local'};
+const lastKeys=['cloud','skills','recovery','aiData'];
+function remainingCase(count){
+ ctx.input={...allRequirements,...Object.fromEntries(lastKeys.slice(0,count).map((key,i)=>[key,i?'unknown':'']))};
+ vm.runInContext('state.requirements=input',ctx);
+ return vm.runInContext('({progress:assessmentProgress(),notice:remainingRequirementsHtml(),assessment:assessment(),report:result()})',ctx);
+}
+assert.equal(remainingCase(4).notice,'');
+for(const count of [3,2,1]){
+ const test=remainingCase(count);
+ assert.equal(test.progress.total,22);assert.equal(test.progress.characterized,22-count);
+ assert.equal(test.progress.missing.length,count);
+ assert.ok(test.notice.includes('Only '+count+' of 22 requirements still need confirmation'));
+ assert.ok(test.assessment.includes('id="remaining-requirements-notice"')&&test.assessment.includes('aria-live="polite"'));
+ assert.ok(test.report.includes(test.notice));
+ for(const key of lastKeys.slice(0,count)){
+  assert.ok(test.notice.includes('href="#q-'+key+'"'));
+  assert.ok(test.notice.includes('data-requirement-step="1"'));
+  assert.ok(test.assessment.includes('id="q-'+key+'"'));
+ }
+}
+const finished=remainingCase(0);
+assert.ok(finished.notice.includes('All 22 assessment requirements are characterized'));
+assert.ok(finished.notice.includes('specialist validation and institutional approval'));
+assert.ok(finished.report.includes('PDF reports are not saved in history'));
+assert.ok(finished.report.includes('Download this report now to keep a copy.'));
+assert.ok(finished.report.includes('If you leave or reload this session without downloading it, this report will not be available later.'));
+assert.ok(finished.report.includes('aria-describedby="pdf-report-history-warning"'));
+ctx.input={...allRequirements,aiInfrastructure:'none',embeddedAI:'none',aiAuthority:'none',aiData:'unknown'};
+vm.runInContext('state.requirements=input',ctx);
+assert.equal(vm.runInContext('assessmentProgress().characterized',ctx),22);
+assert.equal(vm.runInContext('assessmentProgress().missing.length',ctx),0);
+const progressNodes={'live-proposal-content':{innerHTML:''},'remaining-requirements-notice':{innerHTML:''},progress:{textContent:''}};
+ctx.document={getElementById:id=>progressNodes[id]||null};ctx.hideStatusTip=()=>{};ctx.enhanceAcronyms=()=>{};
+remainingCase(4);vm.runInContext("step=1;answer('cloud','yes')",ctx);
+assert.ok(progressNodes['remaining-requirements-notice'].innerHTML.includes('Only 3 of 22'));
+assert.equal(progressNodes.progress.textContent,19);
+vm.runInContext("answer('skills','partial')",ctx);
+assert.ok(progressNodes['remaining-requirements-notice'].innerHTML.includes('Only 2 of 22'));
+assert.ok(!progressNodes['remaining-requirements-notice'].innerHTML.includes('href="#q-skills"'));
+assert.equal(progressNodes.progress.textContent,20);
+vm.runInContext("answer('cloud','unknown');answer('hardware','unknown')",ctx);
+assert.equal(progressNodes['remaining-requirements-notice'].innerHTML,'');
+assert.equal(progressNodes.progress.textContent,18);
+console.log('Completion notice checks passed: 4/3/2/1/0 thresholds, live counts, linked missing answers, AI applicability and PDF history warning.');
