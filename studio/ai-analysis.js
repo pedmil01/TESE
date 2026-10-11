@@ -2,7 +2,7 @@ const aiServiceOrigin='https://hybrid-placement-pedro.pedmil226190.chatgpt.site'
 const aiGithubOrigin='https://pedmil01.github.io';
 const aiDisclosure='This is AI analysis based on the assessment answers and analysis of the optional open-text explanations. It applies the assessment framework, reviews eligibility scope and supporting evidence, and remains advisory. Infrastructure specialists, solution owners and relevant subject-matter experts must validate it; final decisions require institutional approval.';
 let aiAnalysis=null,aiBusy=false,aiError='',aiPending=null,aiPopup=null;
-function aiSnapshot(){return JSON.stringify({application:state.application,requirements:state.requirements,decision:state.decision,sizingUserEdited:needsEdited});}
+function aiSnapshot(){return JSON.stringify({application:state.application,requirements:activeRequirements(),decision:state.decision,sizingUserEdited:needsEdited});}
 function aiCurrent(){return !!aiAnalysis&&aiAnalysis.snapshot===aiSnapshot();}
 function aiAssessment(){return {version:1,...JSON.parse(aiSnapshot()),sections:reportSections().filter(([heading])=>heading!=='AI analysis recommendation')};}
 function aiRecommendationCard(){

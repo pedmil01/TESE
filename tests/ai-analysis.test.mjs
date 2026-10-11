@@ -16,6 +16,8 @@ test('all inputs reach Responses and advice cannot expose credentials or become 
  assert.equal(output.provider,'OpenAI');assert.ok(!JSON.stringify(output).includes('test-only-key'));
  assert.match(sent.instructions,/Eligibility scope and evidence review/);
  assert.match(sent.instructions,/do not add an eligibility or approval status to the proposal/);
+ assert.match(sent.instructions,/aiAuthority is collected only when embeddedAI is enabled or planned/);
+ assert.match(sent.instructions,/No AI workload alone does not exclude embedded AI processing/);
 });
 test('the hard word limit is enforced independently of model instructions',()=>{
  const result=limitWords(Array(2500).fill('word').join(' '));assert.equal(result.text.split(/\s+/).length,2000);assert.equal(result.wordCount,2000);assert.equal(result.shortened,true);

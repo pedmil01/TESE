@@ -17,7 +17,7 @@ const evidenceFields=[
 const evidenceExamples={costEvidence:'Comparison FIN-10, prepared by Finance on the recorded date; equivalent service, recovery and exit scope.',costPeriod:'Five years for every candidate arrangement.',baselineDemand:'100 transactions/s during normal operation; source: business forecast.',peakDemand:'500 transactions/s for 30 minutes at month-end; response-time target 2 seconds.',scalingEvidence:'Load test CAP-4; supported scaling range and provisioning time.',capacityAssumptions:'30% headroom, two recovery sites and a three-year growth forecast.',operatingEvidence:'Platform team owns the runtime; provider covers approved out-of-hours support; recovery responsibilities documented in OPS-10.',aiFlowDetails:'Institution-hosted inference; approved input data only; no prompts or telemetry sent to external model APIs.'};
 const ruleTraceability=[
  {id:'C1',rule:'Enforce declared local execution, external-processing prohibitions, sovereignty and hard proximity / hardware restrictions; block incompatible SaaS or hybrid arrangements.',type:'Direct constraint enforcement',limit:'Enforces declarations only. Specialist evidence is still required for eligibility.'},
- {id:'C2',rule:'Enforce AI processing restrictions and flag contradictory AI answers.',type:'Direct constraint enforcement',limit:'Unknown relevant flows withhold placement; explicit absence across all AI dimensions is required for not applicable.'},
+ {id:'C2',rule:'Enforce AI processing restrictions and flag contradictory AI answers.',type:'Direct constraint enforcement',limit:'Unknown relevant flows withhold placement. Processing location applies to AI workloads or enabled / planned embedded AI; operational authority applies only to enabled / planned embedded AI.'},
  {id:'I1',rule:'Withhold placement when required location, architecture, profile or relevant AI-flow inputs are unknown.',type:'Tool interpretation / information threshold',limit:'The questionnaire threshold is introduced for the demonstrator; it is not mandatory eligibility validation.'},
  {id:'I2',rule:'Map SaaS-only delivery to cloud SaaS and an intentional local / cloud split to hybrid composition when restrictions permit.',type:'Tool interpretation / catalog mapping',limit:'Compatibility and component boundaries remain subject to specialist validation.'},
  {id:'I3',rule:'Map a selected location and declared software support to CaaS, IaaS, PaaS, private cloud, traditional or specialized AI infrastructure.',type:'Tool interpretation / catalog mapping',limit:'No independent product-support or platform evidence verification.'},
@@ -30,7 +30,7 @@ const ruleTraceability=[
  {id:'V2',rule:'Record intended A0–A4 authority and proportionate controls without granting authorization.',type:'Specialist validation obligation',limit:'A3 requires action approval; A4 requires an approved boundary, least privilege, oversight, auditability and suspension / recovery.'}
 ];
 function scopeNotice(){return `<section class="notice scope-notice" aria-label="Preliminary assessment scope"><strong>Preliminary assessment · specialist validation required</strong>${assessmentNotice.map(p=>`<p>${esc(p)}</p>`).join('')}</section>`;}
-function aiNotApplicable(r){return ['saas','package','container','modern'].includes(r.delivery)&&r.aiInfrastructure==='none'&&r.embeddedAI==='none'&&r.aiAuthority==='none';}
+function aiNotApplicable(r){return ['saas','package','container','modern'].includes(r.delivery)&&r.aiInfrastructure==='none'&&r.embeddedAI==='none';}
 function informationProvided(v){return Boolean(String(v||'').trim())&&!/^(unknown|undefined|unresolved|undetermined|n\/?a|none|not (yet )?(provided|known|defined|assessed|confirmed|documented|available|applicable)|to (confirm|be confirmed)|tbc|tbd|needs? (review|assessment|confirmation))\b/i.test(String(v).trim());}
 function economicBasis(r,elasticityBased){
  if(['cloud','local','similar'].includes(r.economics))return (elasticityBased?elasticityMessage+' ':'')+'Assessor-supplied conclusion: '+({cloud:'economics favor cloud',local:'economics favor local',similar:'economics are comparable / no clear cost advantage'}[r.economics])+'. Supporting comparative lifecycle-cost evidence requires specialist validation. The tool does not calculate TCO or establish economic superiority.';
@@ -48,8 +48,8 @@ function outstandingRequirements(r,placementMissing=[]){
  if(!a.classification||a.classification==='unknown')add('Infrastructure security','Institutional data classification remains unknown.');
  if(a.classification==='custom'&&!informationProvided(a.classificationNotes))add('Infrastructure security','Specify the institutional classification and handling restrictions.');
  if(!aiNotApplicable(r)){
-  for(const key of ['aiInfrastructure','embeddedAI','aiAuthority'])if(unknown(key))add('AI authority and data flows',questions.find(q=>q.key===key).label);
-  if(unknown('aiData')||r.aiData==='none'&&!aiInScope(r))add('AI authority and data flows','AI applicability / processing location is unresolved. Not applicable requires explicit absence of all relevant AI capabilities.');
+  for(const key of ['aiInfrastructure','embeddedAI','aiAuthority'])if(questionApplies({key},r)&&unknown(key))add('AI authority and data flows',questions.find(q=>q.key===key).label);
+  if(questionApplies({key:'aiData'},r)&&unknown('aiData'))add('AI authority and data flows',questions.find(q=>q.key==='aiData').label);
   if(aiInScope(r)&&!informationProvided(r.aiFlowDetails))add('AI authority and data flows','Document AI data / context flows, processing locations, permissions and external dependencies.');
  }
  for(const key of ['control','skills','sourcing'])if(unknown(key))add('Operating capability',questions.find(q=>q.key===key).label);
@@ -107,7 +107,7 @@ function requirementTargets(category,detail){
  }
  if(category==='Infrastructure security')return [profileTarget(detail.startsWith('Specify')?'classificationNotes':'classification')];
  if(category==='Sovereignty')return [profileTarget('jurisdiction')];
- if(category==='AI authority and data flows')return detail.startsWith('Document AI')?[evidenceTarget('aiFlowDetails')]:[assessmentTarget('aiInfrastructure'),assessmentTarget('embeddedAI'),assessmentTarget('aiAuthority'),assessmentTarget('aiData')];
+ if(category==='AI authority and data flows')return detail.startsWith('Document AI')?[evidenceTarget('aiFlowDetails')]:['aiInfrastructure','embeddedAI','aiAuthority','aiData'].filter(key=>questionApplies({key})).map(assessmentTarget);
  if(category==='Operating capability')return [evidenceTarget('operatingEvidence')];
  if(category==='Economic evidence'){
   const field=evidenceFields.slice(0,6).find(f=>detail.startsWith(f.label));

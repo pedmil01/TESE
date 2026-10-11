@@ -44,9 +44,9 @@ console.log('Placement regression checks passed: delivery-only, unknowns, local 
 
 assert.equal(recommend({...base,embeddedAI:'yes',aiData:'unknown'}).id,null);
 assert.equal(recommend({...base,embeddedAI:'yes',aiData:'external',cloud:'no'}).id,null);
-assert.ok(recommend({...base,aiAuthority:'A3',aiData:'local'}).checks.some(x=>x.includes('A3 —')));
-assert.ok(recommend({...base,aiAuthority:'A4',aiData:'local'}).checks.some(x=>x.includes('A4 —')));
-assert.ok(recommend({...base,aiAuthority:'A2',aiData:'local'}).checks.some(x=>x.includes('no-production-write')));
+assert.ok(recommend({...base,embeddedAI:'yes',aiAuthority:'A3',aiData:'local'}).checks.some(x=>x.includes('A3 —')));
+assert.ok(recommend({...base,embeddedAI:'yes',aiAuthority:'A4',aiData:'local'}).checks.some(x=>x.includes('A4 —')));
+assert.ok(recommend({...base,embeddedAI:'yes',aiAuthority:'A2',aiData:'local'}).checks.some(x=>x.includes('no-production-write')));
 assert.equal(recommend({...base,aiInfrastructure:'inference',aiData:'local'}).id,'ONPREM-CAAS');
 
 assert.ok(recommend({...base,networkExposure:'internet'}).cyberChecks.some(x=>x.includes('Internet exposure')));
@@ -76,7 +76,7 @@ for(const key of ['control','skills','sourcing'])assert.equal(recommend({...base
 assert.equal(recommend({...base,operatingEvidence:''}).operative,'CO-MANAGED','Optional supporting evidence must not suppress a proposal supported by the operating answers');
 assert.equal(recommend({...base,delivery:'saas',skills:'unknown'}).operative,null);
 for(const authority of ['A3','A4']){
- const test=renderCase({...base,aiAuthority:authority,aiData:'local'});
+ const test=renderCase({...base,embeddedAI:'yes',aiAuthority:authority,aiData:'local'});
  assert.equal(test.r.intendedAiAuthority,authority);
  assert.equal(test.r.eligibility,'Unresolved — specialist validation required.');
  assert.equal(test.r.approval,'Pending institutional approval.');
@@ -101,10 +101,10 @@ const opConflict=renderCase({...base,skills:'limited',sourcing:'no'});
 assert.equal(opConflict.r.id,'CLOUD-CAAS');assert.equal(opConflict.r.operative,null);assert.ok(opConflict.r.operatingConflicts.length);assert.equal(opConflict.r.placementConflicts.length,0);
 const noAi=renderCase({...base,aiInfrastructure:'none',embeddedAI:'none',aiAuthority:'none'});
 assert.ok(noAi.r.aiStatus.startsWith('Not applicable'));
-for(const key of ['aiInfrastructure','embeddedAI','aiAuthority']){
+for(const key of ['aiInfrastructure','embeddedAI']){
  const test=renderCase({...base,aiInfrastructure:'none',embeddedAI:'none',aiAuthority:'none',[key]:'unknown'});
  assert.ok(test.r.aiStatus.startsWith('Unresolved'));assert.ok(test.r.outstanding.some(x=>x.category==='AI authority and data flows'));
- assert.ok(vm.runInContext("questionApplies({key:'aiData'})",ctx));
+ assert.ok(!vm.runInContext("questionApplies({key:'aiData'})",ctx),'Processing location waits until AI involvement is established');
 }
 for(const economics of ['cloud','local','similar']){
  const test=renderCase({...base,economics,demand:'elastic'});
@@ -171,9 +171,9 @@ const routeCases=[
  {...base,delivery:'saas',local:'yes'},
  {...base,hybrid:'yes',cloud:'no'},
  {...base,embeddedAI:'yes',aiData:'external',cloud:'no'},
- {...base,aiAuthority:'A4',aiData:'unknown'},
+ {...base,embeddedAI:'yes',aiAuthority:'A4',aiData:'unknown'},
  {...base,recovery:'unknown',trustedRecovery:'undefined',aiInfrastructure:'none',embeddedAI:'none',aiAuthority:'none'},
- {...base,recovery:'yes',networkExposure:'internal',securityIsolation:'segmented',keyCustody:'institution',aiAuthority:'A3',aiData:'local'}
+ {...base,recovery:'yes',networkExposure:'internal',securityIsolation:'segmented',keyCustody:'institution',embeddedAI:'yes',aiAuthority:'A3',aiData:'local'}
 ];
 for(const input of routeCases){
  const test=resolutionCase(input,{financialCriticality:'noncritical',executionRestriction:'flexible',sovereigntyRestriction:'conditional',classification:'custom'});

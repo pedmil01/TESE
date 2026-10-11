@@ -1,13 +1,13 @@
 function reportSections(){
- const r=recommendation(),a=state.application,d=state.decision;
+ const r=recommendation(),a=state.application,d=state.decision,requirements=activeRequirements();
  const zone=model.zones.find(z=>z.id===r.id);
  const option=key=>profileOptions[key].options.find(([v])=>v===a[key])?.[1]||'Not provided';
- const response=q=>!questionApplies(q)?'Not applicable — responses establish that no relevant AI capability is involved':q.options.find(([v])=>v===state.requirements[q.key])?.[1]||'Not answered';
+ const response=q=>!questionApplies(q)?questionNotApplicableMessage(q):q.options.find(([v])=>v===requirements[q.key])?.[1]||'Not answered';
  const text=value=>value||'Not provided';
  const pair=(question,answer)=>({question,answer:text(answer),unanswered:!informationProvided(answer)});
  const hasText=value=>Boolean(String(value||'').trim());
  const enteredPair=(question,value)=>hasText(value)?[pair(question,value)]:[];
- const evidenceEntries=evidenceFields.filter(f=>hasText(state.requirements[f.key])).map(f=>pair(f.label,state.requirements[f.key]));
+ const evidenceEntries=evidenceFields.filter(f=>hasText(requirements[f.key])).map(f=>pair(f.label,requirements[f.key]));
  const decisionEntries=[['rationale','Rationale / architecture notes'],['conditions','Conditions and evidence references'],['owner','Decision owner'],['platform','Platform / technology owner'],['operator','Technical operator / provider'],['authority','Approval authority'],['review','Review trigger / date']].flatMap(([key,label])=>enteredPair(label,d[key]));
  return [
   ['Preliminary assessment scope',assessmentNotice],
