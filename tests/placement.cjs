@@ -1,9 +1,9 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ctx=vm.createContext({fetch:()=>new Promise(()=>{})});
-vm.runInContext(fs.readFileSync('dist/decision-context.js','utf8'),ctx);
-vm.runInContext(fs.readFileSync('dist/app.js','utf8'),ctx);
-vm.runInContext(fs.readFileSync('dist/report.js','utf8'),ctx);
-vm.runInContext('model='+fs.readFileSync('dist/model.json','utf8'),ctx);
+vm.runInContext(fs.readFileSync('studio/decision-context.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync('studio/app.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync('studio/report.js','utf8'),ctx);
+vm.runInContext('model='+fs.readFileSync('studio/model.json','utf8'),ctx);
 function recommend(overrides){ctx.input=overrides;return vm.runInContext('recommendation(input)',ctx)}
 vm.runInContext("state.application={financialCriticality:'noncritical',executionRestriction:'flexible',sovereigntyRestriction:'conditional'}",ctx);
 const base={criticality:'medium',delivery:'container',local:'no',cloud:'yes',hybrid:'no',proximity:'flexible',hardware:'standard',platform:'self',economics:'cloud',demand:'steady',control:'shared',skills:'partial',sourcing:'yes',operatingEvidence:'Operating scope: platform team, 24/7 coverage, lifecycle and recovery ownership'};

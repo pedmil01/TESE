@@ -24,8 +24,8 @@ const acronymEntries=[
  ['PaaS','Platform as a Service','A managed solution or data platform. The provider operates defined platform layers while the institution retains responsibilities for its solutions, data and service configuration.'],
  ['PDF','Portable Document Format','The document format used for the downloadable assessment report.'],
  ['PKI','Public Key Infrastructure','The certificates, trust services and processes used to manage public-key identities and cryptographic trust.'],
- ['RPO','Recovery Point Objective','The maximum acceptable data loss expressed as a duration. An RPO of 15 minutes means that no more than 15 minutes of recent data changes may be lost.'],
- ['RTO','Recovery Time Objective','The target maximum time to restore the service after a disruption. An RTO of two hours means restoration is required within two hours.'],
+ ['RPO','Recovery Point Objective','The maximum acceptable data loss expressed as a duration. The assessment records this data-loss window in minutes. An RPO of 15 minutes means that no more than 15 minutes of recent data changes may be lost.'],
+ ['RTO','Recovery Time Objective','The target maximum time to restore the service after a disruption. The assessment records this restoration time in hours. An RTO of two hours means restoration is required within two hours.'],
  ['SaaS','Software as a Service','A solution supplied as a provider-hosted service. The institution still owns tenant, data, access and assurance responsibilities within the agreed boundary.'],
  ['SLA','Service Level Agreement','An agreement defining service commitments, such as availability, support response and recovery commitments. An SLA is not evidence of tested end-to-end recovery.'],
  ['TB','Terabyte','A unit of digital data, normally one trillion bytes. Confirm whether a supplier uses decimal TB or binary TiB when comparing capacity.'],
@@ -35,7 +35,7 @@ const acronymEntries=[
  ['vCPU','Virtual Central Processing Unit','A virtual processor allocated to a virtual machine or computing service. Performance depends on the underlying processor and allocation model.'],
  ['VM','Virtual Machine','A software-defined computing environment running on virtualized hardware.'],
  ['WL','Workload','The abbreviation used in example workload identifiers such as WL-001. A workload is a solution or service assessed as a defined unit.'],
- ['A0','Observation','AI may access and interpret authorized operational information, without production-write permissions. This is a thesis authority category, not a maturity score.'],
+ ['A0','Observation','AI may access and interpret authorized operational information, without production-write permissions. This is an operational-authority category, not a maturity score.'],
  ['A1','Assistance','AI provides analytical support such as diagnostics or summaries; humans determine subsequent actions.'],
  ['A2','Recommendation','AI proposes operational actions for human assessment and decision; it does not execute production changes.'],
  ['A3','Approved Execution','AI executes a specifically authorized action through controlled interfaces after the required approval.'],
@@ -44,7 +44,7 @@ const acronymEntries=[
 const acronymLookup=new Map(acronymEntries.map(e=>[e.term,e]));
 for(const [alias,term]of Object.entries({APIs:'API',CPUs:'CPU',GPUs:'GPU',HSMs:'HSM',VMs:'VM',SLAs:'SLA',CAAS:'CaaS',IAAS:'IaaS',PAAS:'PaaS',SAAS:'SaaS'}))acronymLookup.set(alias,acronymLookup.get(term));
 const acronymPattern=new RegExp('\\b('+[...acronymLookup.keys()].sort((a,b)=>b.length-a.length).join('|')+')\\b','g');
-function glossary(){return `<div class="card glossary"><h2>List of acronyms</h2><p>Hover over or focus an underlined term anywhere in the assessment for an explanation. Select it to open its definition here. A0–A4 are operational-authority codes from the thesis.</p><div class="acronym-index">${acronymEntries.map(e=>`<a href="#acronym-${e.term}" class="acronym-index-link" data-acronym="${e.term}">${esc(e.term)}</a>`).join('')}</div><dl>${acronymEntries.map(e=>`<div class="acronym-entry" id="acronym-${e.term}" tabindex="-1"><dt><strong>${esc(e.term)}</strong><span>${esc(e.expansion)}</span></dt><dd>${esc(e.description)}</dd></div>`).join('')}</dl></div>`;}
+function glossary(){return `<div class="card glossary"><h2>List of acronyms</h2><p>Hover over or focus an underlined term anywhere in the assessment for an explanation. Select it to open its definition here. A0–A4 describe intended operational authority.</p><div class="acronym-index">${acronymEntries.map(e=>`<a href="#acronym-${e.term}" class="acronym-index-link" data-acronym="${e.term}">${esc(e.term)}</a>`).join('')}</div><dl>${acronymEntries.map(e=>`<div class="acronym-entry" id="acronym-${e.term}" tabindex="-1"><dt><strong>${esc(e.term)}</strong><span>${esc(e.expansion)}</span></dt><dd>${esc(e.description)}</dd></div>`).join('')}</dl></div>`;}
 function acronymLink(label,entry){const a=document.createElement('a');a.className='acronym-link';a.href='#acronym-'+entry.term;a.dataset.acronym=entry.term;a.textContent=label;a.setAttribute('aria-label',label+' — '+entry.expansion+'. Open definition.');return a;}
 function enhanceAcronyms(root=document.getElementById('content')){
  if(!root||step===4)return;

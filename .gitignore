@@ -47,8 +47,7 @@ next-env.d.ts
 !/build/sites-vite-plugin.ts
 !/build/sites-worker.ts
 
-/dist/server/
-/dist/client/
+/dist/
 /public/studio/
 /.wrangler/
 # Checkout-local execution profile and tool state; never publish them.

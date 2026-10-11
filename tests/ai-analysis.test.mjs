@@ -29,8 +29,8 @@ test('invalid input and billing failures have actionable messages without provid
 test('changing any optional text invalidates the AI report; HTML-like model content is escaped',()=>{
  const listeners=[];
  const context=vm.createContext({fetch:()=>new Promise(()=>{}),location:{origin:'https://hybrid-placement-pedro.pedmil226190.chatgpt.site',hash:''},window:{addEventListener:(...args)=>listeners.push(args)},document:{addEventListener:()=>{}},setTimeout,clearTimeout});
- for(const file of ['decision-context.js','app.js','report.js','ai-analysis.js'])vm.runInContext(fs.readFileSync('dist/'+file,'utf8'),context);
- vm.runInContext('model='+fs.readFileSync('dist/model.json','utf8'),context);
+ for(const file of ['decision-context.js','app.js','report.js','ai-analysis.js'])vm.runInContext(fs.readFileSync('studio/'+file,'utf8'),context);
+ vm.runInContext('model='+fs.readFileSync('studio/model.json','utf8'),context);
  vm.runInContext("state.application={name:'Test',rto:'2',rpo:'15'};state.requirements={};state.decision={};aiAccept({text:'<script>alert(1)</script> Preliminary advice.',model:'gpt-5.4-mini',generatedAt:'2026-10-11T14:00:00Z'},aiSnapshot())",context);
  assert.equal(vm.runInContext('aiCurrent()',context),true);
  assert.match(vm.runInContext('aiRecommendationCard()',context),/&lt;script&gt;/);
@@ -39,5 +39,5 @@ test('changing any optional text invalidates the AI report; HTML-like model cont
  assert.equal(vm.runInContext('aiCurrent()',context),false);
  assert.equal(vm.runInContext("JSON.stringify(reportSections()).includes('<script>alert(1)</script> Preliminary advice.')",context),false);
  assert.match(vm.runInContext('JSON.stringify(aiReportSection())',context),/omitted/);
- assert.match(fs.readFileSync('dist/ai-analysis.js','utf8'),/event.origin!==aiGithubOrigin\|\|event.source!==window.opener/);
+ assert.match(fs.readFileSync('studio/ai-analysis.js','utf8'),/event.origin!==aiGithubOrigin\|\|event.source!==window.opener/);
 });
