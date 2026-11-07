@@ -299,7 +299,7 @@
   {
     "field": "requirements.economics",
     "label": "What is the assessor’s lifecycle-economic conclusion?",
-    "hint": "Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Leave unconfirmed if no comparable estimates exist. Record the ability to fund purchases and recurring payments separately in Funding and procurement below.",
+    "hint": "Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Select “No comparable lifecycle cost evidence” when estimates are unavailable; the assessment still proposes a technical placement, explicitly excluding economics and recording alternative hosting options. Record the ability to fund purchases and recurring payments separately in Funding and procurement below.",
     "options": {
       "cloud": "Assessor conclusion — cloud favored; supporting evidence required",
       "local": "Assessor conclusion — local favored; supporting evidence required",

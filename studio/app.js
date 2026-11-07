@@ -21,7 +21,7 @@ const questions=[
 {key:'hardware',group:'Software architecture',label:'Is local dedicated hardware required?',hint:'Examples: a locally controlled HSM, physical licensing device or specialized appliance. An available cloud GPU is not a local-only requirement.',options:[['local','Yes — local physical / dedicated equipment is mandatory'],['standard','No — standard or provider-supplied infrastructure is suitable'],['unknown','Software / hardware requirements not confirmed']]},
 {key:'platform',group:'Software architecture',label:'Which hosting pattern is supported?',hint:'Select a supported pattern, not an aspiration. Confirm vendor support, runtime compatibility and licensing before finalizing.',options:[['managed','Managed runtime / database / platform services supported'],['self','Institution controls OS / middleware / virtual machines'],['private','Private cloud self-service platform supported'],['unknown','Not confirmed / not applicable to SaaS']]},
 {key:'demand',group:'Economics & capacity',label:'What is the demand profile?',hint:'Consider peaks, idle periods, expected growth and time to provision. Elastic demand is a reason to consider cloud, not permission to bypass controls.',options:[['elastic','Variable / burst demand; rapid scaling needed'],['steady','Predictable, stable capacity'],['unknown','Sizing not yet established']]},
-{key:'economics',group:'Economics & capacity',label:'What is the assessor’s lifecycle-economic conclusion?',hint:'Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Leave unconfirmed if no comparable estimates exist. Record the ability to fund purchases and recurring payments separately in Funding and procurement below.',options:[['cloud','Assessor conclusion — cloud favored; supporting evidence required'],['local','Assessor conclusion — local favored; supporting evidence required'],['similar','Assessor conclusion — comparable / no clear cost advantage'],['unknown','No comparable lifecycle cost evidence']]},
+{key:'economics',group:'Economics & capacity',label:'What is the assessor’s lifecycle-economic conclusion?',hint:'Record an assessor-supplied conclusion requiring supporting evidence. Compare equivalent service requirements over the same assessment period, including operations, connectivity, security, recovery and exit. The tool does not calculate TCO or establish economic superiority. Select “No comparable lifecycle cost evidence” when estimates are unavailable; the assessment still proposes a technical placement, explicitly excluding economics and recording alternative hosting options. Record the ability to fund purchases and recurring payments separately in Funding and procurement below.',options:[['cloud','Assessor conclusion — cloud favored; supporting evidence required'],['local','Assessor conclusion — local favored; supporting evidence required'],['similar','Assessor conclusion — comparable / no clear cost advantage'],['unknown','No comparable lifecycle cost evidence']]},
 {key:'criticality',group:'Resilience & assurance',label:'What is the solution’s service criticality?',hint:'Use business impact and institutional tiers. High criticality strengthens recovery and assurance requirements; it does not automatically dictate placement.',options:[['high','High — critical institutional / mission impact'],['medium','Medium — significant but tolerable disruption'],['low','Low — limited impact and workable alternative'],['unknown','Business impact not yet assessed']]},
 {key:'recovery',group:'Resilience & assurance',label:'Are recovery targets and dependencies defined?',hint:'Define RTO (restoration time in hours), RPO (acceptable data-loss window in minutes), backup independence, trusted recovery and the recovery order of dependencies. A target is not evidence of a tested design.',options:[['yes','Targets and recovery dependencies are documented'],['no','Not yet documented'],['unknown','Needs continuity review']]},
 {key:'control',group:'Operating capability',label:'How much direct institutional operational control is required?',hint:'Separate accountable ownership from executing tasks. The institution retains accountability under every operating model.',options:[['retain','Institution must execute privileged / critical operations'],['shared','Institution and provider may divide operations'],['delegate','Operational execution may be delegated'],['unknown','Responsibility boundary not agreed']]},
@@ -95,7 +95,7 @@ function syncAiQuestions(){
  const evidence=document.getElementById('ai-flow-evidence');if(evidence)evidence.hidden=!aiInScope();
 }
 function assessmentProgress(r=state.requirements){
- const missing=questions.filter(q=>questionApplies(q,r)&&(!r[q.key]||r[q.key]==='unknown'));
+ const missing=questions.filter(q=>questionApplies(q,r)&&(!r[q.key]||(r[q.key]==='unknown'&&q.key!=='economics')));
  return {total:questions.length,characterized:questions.length-missing.length,missing};
 }
 function remainingRequirementsHtml(){
@@ -142,7 +142,7 @@ function field(key,label,obj='application',area=false){
 }
 function recommendation(r=state.requirements){
  r=activeRequirements(r);
- let id=null,reasons=[],issues=[],conflictDetails=[],checks=[],operative=null,support='None proposed',opReasons=[],appliedRules=['C1','C2','I1','V1','V2'],elasticityBased=false;
+ let technicalOnly=false,alternatives=[],id=null,reasons=[],issues=[],conflictDetails=[],checks=[],operative=null,support='None proposed',opReasons=[],appliedRules=['C1','C2','I1','V1','V2'],elasticityBased=false;
  const conflict=(kinds,title,detail,action,keys,profileKeys=[])=>{issues.push(detail);conflictDetails.push({...decisionDiagnostic(kinds,title,detail,action,keys,profileKeys,r),type:'conflict'});};
  const missing=assessmentProgress(r).missing.map(q=>q.label);
  const known=key=>Boolean(r[key]&&r[key]!=='unknown');
@@ -187,7 +187,19 @@ function recommendation(r=state.requirements){
    else if(r.economics==='local'){location='local';appliedRules.push('I5');reasons.push('With no mandatory location constraint, the assessor-supplied economic conclusion favors local execution; supporting comparative evidence requires specialist validation.');if(r.demand==='elastic')checks.push('Elastic demand remains a trade-off: demonstrate local peak capacity and provisioning time despite the local cost advantage.');}
    else if(r.economics==='cloud'){location='cloud';appliedRules.push('I5');reasons.push('External processing is permitted, local constraints are absent and the assessor-supplied economic conclusion favors cloud execution; supporting comparative evidence requires specialist validation.');}
    else if(r.demand==='elastic'){location='cloud';elasticityBased=true;appliedRules.push('I6');reasons.push(elasticityMessage);checks.push('Validate comparable lifecycle costs over a common assessment period, baseline and peak demand, scaling capability and capacity assumptions.');}
-   else {appliedRules.push('I7');checks.push('Both local and cloud execution remain possible. Provide comparative lifecycle cost evidence or a decisive capacity requirement; steady demand alone does not choose a location.');}
+   else if(['unknown','similar'].includes(r.economics)){
+    appliedRules.push('I7');
+    const localPattern=r.delivery==='container'?'On-premises CaaS':r.delivery==='ai'?'On-premises AI infrastructure':r.platform==='self'?'On-premises servers / virtual machines':r.platform==='private'?'On-premises private cloud':'Local hosting — supported runtime / edition must be confirmed';
+    const cloudPattern=r.delivery==='container'?'Cloud CaaS':r.delivery==='ai'?'Cloud AI infrastructure':r.platform==='managed'?'Cloud PaaS':r.platform==='self'?'Cloud IaaS':'Cloud hosting — supported external hosting pattern must be confirmed';
+    alternatives=[localPattern,cloudPattern];
+    technicalOnly=true;
+    location=['container','ai'].includes(r.delivery)?(r.control==='delegate'?'cloud':'local'):r.platform==='managed'?'cloud':'local';
+    reasons.push('Technical placement proposed without an economic ranking. '+(r.platform==='managed'&&!['container','ai'].includes(r.delivery)?'Cloud PaaS is the reference proposal because the declared hosting pattern supports managed runtime / database services.':location==='local'?'Local hosting is the reference proposal for the declared supported local pattern or self-operated workload. This is a technical planning convention, not proof of superiority.':'Cloud hosting is the reference proposal for a workload whose operational execution may be delegated. This is a technical planning convention, not proof of superiority.'));
+    reasons.push('Both local and cloud solutions are technically possible in principle under the declared location constraints. Product / runtime support, capacity, controls and recovery must be validated for each; this is not a hybrid architecture or deployment approval.');
+    reasons.push('Local option: '+localPattern+'.');
+    reasons.push('Cloud option: '+cloudPattern+'. '+(r.exitStatus==='blocked'?'Excluded until the confirmed cloud-exit blocker is resolved.':cloudExitAssessment(r,true).missing.length?'Conditional: cloud exit feasibility and required details must be confirmed.':'Cloud exit is recorded; specialist validation remains required.'));
+    checks.push('Validate comparative lifecycle costs before the final placement decision. The technical proposal does not establish the most economical solution.');
+   }else {appliedRules.push('I7');checks.push('Both local and cloud execution remain possible. Provide comparative lifecycle cost evidence or a decisive capacity requirement; steady demand alone does not choose a location.');}
    if(location){
     if(r.delivery==='container')id=location==='local'?'ONPREM-CAAS':'CLOUD-CAAS';
     else if(r.delivery==='ai')id=location==='local'?'AI-ONPREM':'AI-CLOUD';
@@ -200,12 +212,12 @@ function recommendation(r=state.requirements){
      else if(r.platform==='self')id='CLOUD-IAAS';
      else checks.push('Cloud location is indicated, but only a private-cloud pattern is confirmed. Verify a supported external-cloud hosting pattern before assigning a zone.');
     }
-    if(id){appliedRules.push('I3');reasons.push('The software delivery and confirmed platform compatibility select the service model within that location; they do not independently determine the location.');}
+    if(id){appliedRules.push('I3');reasons.push(technicalOnly?'The declared hosting pattern and operational-control preference provide a technical reference proposal; validation and comparison may change the final choice.':'The software delivery and confirmed platform compatibility select the service model within that location; they do not independently determine the location.');}
    }
   }
  }
  const cloudExitRequired=Boolean(id&&['Cloud','Hybrid'].includes(model.zones.find(z=>z.id===id)?.location));
- const cloudExit=cloudExitAssessment(r,cloudExitRequired);
+ const cloudExit=cloudExitAssessment(r,cloudExitRequired||alternatives.length>0);
  if(cloudExitRequired){
   appliedRules.push('C3');
   if(r.exitStatus==='blocked'){
@@ -214,7 +226,8 @@ function recommendation(r=state.requirements){
    item.answers.push(diagnosticReference(evidenceTarget('exitStatus'),r));
    conflictDetails.push({...item,type:'conflict'});id=null;
   }else if(cloudExit.missing.length){
-   placementMissing.push(...cloudExit.missing.map(f=>f.label));id=null;
+   if(technicalOnly){cloudExit.label='Cloud exit pending — technical proposal only';cloudExit.detail='The cloud placement is a preliminary technical proposal. Exit feasibility and the required data, recovery / migration, destination and contractual details must be confirmed before a final decision or deployment.';}
+   else {placementMissing.push(...cloudExit.missing.map(f=>f.label));id=null;}
   }
   checks.push('Cloud exit — validate complete data export / independent access, a supported restore, migration or replacement route, destination capacity and controls, timing, costs, contract rights, owners and test evidence. A backup confined to the same provider does not establish exit.');
  }
@@ -265,11 +278,11 @@ function recommendation(r=state.requirements){
  }
  checks.push('Finance and procurement must validate upfront purchase funding, sustainable recurring payments, supplier / contract terms and acquisition lead times. A lower lifecycle cost does not establish affordability or purchasing approval.');
  checks.push(...mandatoryGates.map(g=>'Before institutional approval: '+g.label+'. '+g.hint));
- if(placementConflicts.length)id=null;
- const outstanding=outstandingRequirements(r,placementMissing,cloudExitRequired);
+ if(placementConflicts.length){id=null;alternatives=[];technicalOnly=false;}
+ const outstanding=outstandingRequirements(r,placementMissing,cloudExitRequired||alternatives.length>0);
  const economicsBasis=economicBasis(r,elasticityBased);
  const aiStatus=aiNotApplicable(r)?'Not applicable — responses establish that no relevant AI capability is involved':aiInScope(r)?'Relevant AI capability identified; intended authority and controls require specialist validation':'Unresolved — AI applicability has not been established';
- return {id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id?'UNRESOLVED':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
+ return {technicalOnly,alternatives,id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id?'UNRESOLVED':technicalOnly?'TECHNICAL PLACEMENT PROPOSAL':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
 }
 function go(i){hideAcronymTip();if(location.hash.startsWith('#acronym'))history.replaceState(null,'',location.pathname+location.search);step=i;render();window.scrollTo(0,0)}
 function answer(key,v){state.requirements[key]=v;if(key==='criticality')state.application.criticality=v;if(key==='demand')state.application.demandProfile=v;if(key==='hardware')state.application.hardwareNeed=v;syncSuggestedNeeds();if(step===1){syncAiQuestions();hideStatusTip();document.getElementById('live-proposal-content').innerHTML=proposal();enhanceAcronyms(document.getElementById('live-proposal-content'));const remaining=document.getElementById('remaining-requirements-notice');if(remaining)remaining.innerHTML=remainingRequirementsHtml();document.getElementById('progress').textContent=assessmentProgress().characterized;}else render()}

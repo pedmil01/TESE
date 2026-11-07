@@ -59,7 +59,7 @@ function fundingReadiness(r=state.requirements){
 }
 function fundingHtml(r=state.requirements){const readiness=fundingReadiness(r);return `<section class="notice ${['unfunded','conditional'].includes(r.fundingStatus)?'warning':''}" aria-label="Funding and procurement readiness"><strong>${esc(readiness.label)}</strong><p>${esc(readiness.detail)}</p>${resolutionLinks(evidenceFields.filter(f=>f.group==='finance').map(f=>evidenceTarget(f.key)))}</section>`;}
 const ruleTraceability=[
- {id:'C3',rule:'Require a feasible cloud exit with complete data access and a supported recovery, migration or replacement route. Block a confirmed impossible exit; withhold cloud placement when exit feasibility or required details are unconfirmed.',type:'Direct cloud-exit constraint',limit:'Applies to external cloud, SaaS and hybrid cloud components. Recorded plans and test claims require specialist validation; same-provider backup alone does not demonstrate exit.'},
+ {id:'C3',rule:'Require a feasible cloud exit with complete data access and a supported recovery, migration or replacement route. Block a confirmed impossible exit. Unconfirmed exit withholds a regular cloud proposal; a technical-only reference proposal may remain visible with an explicit condition to resolve exit before final decision or deployment.',type:'Direct cloud-exit constraint',limit:'Applies to external cloud, SaaS and hybrid cloud components. Recorded plans and test claims require specialist validation; same-provider backup alone does not demonstrate exit.'},
  {id:'C1',rule:'Enforce declared local execution, external-processing prohibitions, sovereignty and hard proximity / hardware restrictions; block incompatible SaaS or hybrid arrangements.',type:'Direct constraint enforcement',limit:'Enforces declarations only. Specialist evidence is still required for eligibility.'},
  {id:'C2',rule:'Enforce AI processing restrictions and flag contradictory AI answers.',type:'Direct constraint enforcement',limit:'Unknown relevant flows withhold placement. Processing location applies to AI workloads or enabled / planned embedded AI; operational authority applies only to enabled / planned embedded AI.'},
  {id:'I1',rule:'Withhold placement when required location, architecture, profile or relevant AI-flow inputs are unknown.',type:'Tool interpretation / information threshold',limit:'The questionnaire threshold is introduced for the demonstrator; it is not mandatory eligibility validation.'},
@@ -68,7 +68,7 @@ const ruleTraceability=[
  {id:'I4',rule:'Use an explicit AI workload processing location as a location differentiator, subject to execution restrictions.',type:'Tool interpretation / location inference',limit:'AI involvement alone does not mandate on-premises placement.'},
  {id:'I5',rule:'Use an assessor-supplied lifecycle-economic preference when location is flexible; retain the evidence obligation.',type:'Tool interpretation / assessor conclusion',limit:'Does not calculate TCO or establish superiority; requires a common period, comparable scope and documented demand assumptions.'},
  {id:'I6',rule:'Suggest a cloud candidate for elastic demand when restrictions permit and no economic preference resolves location.',type:'Tool interpretation / elasticity heuristic',limit:'Introduced specifically for this tool. Elasticity does not establish economic suitability.'},
- {id:'I7',rule:'Leave flexible location unresolved without a supported location differentiator or compatible platform pattern.',type:'Tool interpretation / conservative fallback',limit:'Steady demand alone does not select an arrangement.'},
+ {id:'I7',rule:'Propose a technical reference placement when economics is unavailable or inconclusive: managed runtimes favor cloud PaaS; supported self-managed / private patterns favor local; containers / AI favor local unless execution may be delegated. Record both options and validation conditions.',type:'Tool interpretation / conservative fallback',limit:'This is a planning convention, not evidence of technical or economic superiority. Unknown exit evidence remains a pre-deployment condition for this technical-only proposal; confirmed conflicts still block it.'},
  {id:'I8',rule:'Suggest internal, co-managed, managed or provider operation from control, skills and sourcing; unresolved inputs or capability conflicts leave the operating model unresolved.',type:'Tool interpretation / operating-model mapping',limit:'Institutional accountability remains internal; SaaS tenant administration and support still require capability information.'},
  {id:'V1',rule:'Keep recovery, security, sovereignty, operating and economic gaps visible; criticality strengthens review obligations without an automatic cloud ban.',type:'Specialist validation obligation',limit:'Missing information is distinct from confirmed conflicts. Mandatory validation remains outside the questionnaire.'},
  {id:'V2',rule:'Record intended A0–A4 authority and proportionate controls without granting authorization.',type:'Specialist validation obligation',limit:'A3 requires action approval; A4 requires an approved boundary, least privilege, oversight, auditability and suspension / recovery.'}
@@ -78,7 +78,7 @@ function aiNotApplicable(r){return ['saas','package','container','modern'].inclu
 function informationProvided(v){return Boolean(String(v||'').trim())&&!/^(unknown|undefined|unresolved|undetermined|n\/?a|none|not (yet )?(provided|known|defined|assessed|confirmed|documented|available|applicable)|to (confirm|be confirmed)|tbc|tbd|needs? (review|assessment|confirmation))\b/i.test(String(v).trim());}
 function economicBasis(r,elasticityBased){
  if(['cloud','local','similar'].includes(r.economics))return (elasticityBased?elasticityMessage+' ':'')+'Assessor-supplied conclusion: '+({cloud:'economics favor cloud',local:'economics favor local',similar:'economics are comparable / no clear cost advantage'}[r.economics])+'. Supporting comparative lifecycle-cost evidence requires specialist validation. The tool does not calculate TCO or establish economic superiority.';
- return elasticityBased?elasticityMessage:'Economic suitability remains unassessed; no comparative lifecycle-cost conclusion has been supplied.';
+ return (elasticityBased?elasticityMessage+' ':'')+'The economic component was not taken into consideration because comparable lifecycle-cost information was not available. This proposal is based on technical criteria only; it does not establish economic superiority.';
 }
 function outstandingRequirements(r,placementMissing=[],exitRequired=false){
  const a=state.application,items=[];
@@ -116,13 +116,14 @@ function outstandingRequirements(r,placementMissing=[],exitRequired=false){
 }
 function decisionStatuses(r){
  return [
-  ['Placement',r.placementConflicts.length?'Requirements conflict':model.zones.find(z=>z.id===r.id)?.name||'Unresolved'],
+  ['Placement',r.placementConflicts.length?'Requirements conflict':(r.id?(model.zones.find(z=>z.id===r.id)?.name+(r.technicalOnly?' — technical proposal':'')):'Unresolved')],
   ['Proposed Operating model',r.operatingConflicts.length?'Requirements conflict':model.operations.find(o=>o.id===r.operative)?.name||'Unresolved']
  ];
 }
 function statusExplanation(kind,r=recommendation()){
  let reasons=[];
  if(kind==='placement'){
+  if(r.alternatives?.length)return r.reasons;
   reasons.push(...r.placementConflicts);
   reasons.push(...r.placementMissing.map(item=>'Missing or unconfirmed: '+item));
   reasons.push(...r.checks.filter(item=>/Both local and cloud execution remain possible|location is indicated/i.test(item)));
@@ -229,7 +230,7 @@ function decisionDiagnostic(kinds,title,detail,action,keys=[],profileKeys=[],r=s
 }
 function decisionDiagnostics(kind,r=recommendation()){
  const items=r.conflictDetails.filter(item=>item.kinds.includes(kind));
- if(kind==='placement'&&!r.id){
+ if(kind==='placement'&&!r.id&&!r.alternatives?.length){
   if(r.placementMissing.length)items.push(decisionDiagnostic(['placement'],'Required placement inputs need confirmation','Missing or unconfirmed: '+r.placementMissing.join('; ')+'.','Confirm the listed decision inputs with their requirement owners. Any confirmed conflicts must also be resolved; supporting evidence remains a separate validation requirement.',[],[],state.requirements,r.placementMissing.flatMap(detail=>requirementTargets('Placement inputs',detail)).filter(t=>t.id!=='evidence-aiFlowDetails')));
   for(const detail of r.checks.filter(item=>/Both local and cloud execution remain possible|location is indicated/i.test(item))){
    if(/Both local and cloud execution remain possible/i.test(detail))items.push(decisionDiagnostic(['placement'],'No basis yet to choose local or cloud',detail,'Compare equivalent lifecycle costs and record the assessor conclusion, or establish a genuine execution-location requirement. Steady demand and comparable costs alone do not select a location.',['demand','economics'],[],state.requirements,[evidenceTarget('costEvidence'),evidenceTarget('costPeriod')]));

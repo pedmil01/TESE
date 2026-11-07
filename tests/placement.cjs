@@ -11,7 +11,7 @@ for(const delivery of ['saas','package','container','modern','ai'])assert.equal(
 assert.equal(recommend(base).id,'CLOUD-CAAS');
 for(const override of [{local:'yes'},{cloud:'no'},{proximity:'hard'},{hardware:'local'},{economics:'local'}])assert.equal(recommend({...base,...override}).id,'ONPREM-CAAS');
 for(const key of ['local','cloud','hybrid','proximity','hardware'])assert.equal(recommend({...base,[key]:'unknown'}).id,null,'Unknown constraint must withhold placement: '+key);
-assert.equal(recommend({...base,economics:'unknown',demand:'steady'}).id,null);
+assert.equal(recommend({...base,economics:'unknown',demand:'steady'}).id,'ONPREM-CAAS');
 assert.equal(recommend({...base,economics:'unknown',demand:'elastic'}).id,'CLOUD-CAAS');
 assert.equal(recommend({...base,hybrid:'yes'}).id,'HYBRID-COMPOSITION');
 for(const override of [{cloud:'no'},{local:'yes'}])assert.equal(recommend({...base,hybrid:'yes',...override}).id,null);
@@ -136,7 +136,8 @@ assert.ok(missingLocation.html.includes('data-status-kind="placement"'));
 assert.ok(!missingLocation.html.includes('data-status-kind="eligibility"'));
 assert.ok(!missingLocation.html.includes('data-status-kind="operating"'));
 const noDifferentiator=explanations({...base,economics:'unknown',demand:'steady'});
-assert.ok(noDifferentiator.placement.some(x=>x.includes('steady demand alone does not choose a location')));
+assert.ok(noDifferentiator.html.includes('technical proposal'));
+assert.ok(!noDifferentiator.html.includes('data-status-kind="placement"'));
 const platformGap=explanations({...base,delivery:'modern',platform:'managed',local:'yes'});
 assert.ok(platformGap.placement.some(x=>x.includes('supported local deployment')));
 const missingSkills=explanations({...base,skills:'unknown',operatingEvidence:''});
@@ -304,3 +305,25 @@ for(const input of routeCases){
  }
 }
 console.log('WL-001 diagnostic checks passed: exact conflicting answers/links, corrective actions, independent co-managed proposal, optional evidence gaps and matching PDF explanations.');
+
+// Explicit unavailable economics is a valid answer and produces a useful conditional assessment.
+vm.runInContext("state.application={financialCriticality:'supporting',executionRestriction:'flexible',sovereigntyRestriction:'conditional'}",ctx);
+const payroll=renderCase({...base,delivery:'modern',platform:'managed',economics:'unknown',demand:'steady',exitStatus:'unknown',control:'retain',skills:'strong',sourcing:'specialist',aiInfrastructure:'none',embeddedAI:'none'});
+assert.equal(payroll.r.status,'TECHNICAL PLACEMENT PROPOSAL');
+assert.equal(payroll.r.id,'CLOUD-PAAS');
+assert.equal(payroll.r.technicalOnly,true);
+assert.equal(payroll.r.operative,'INTERNAL');
+assert.equal(payroll.r.alternatives.length,2);
+assert.ok(payroll.html.includes('Cloud PaaS'));
+assert.ok(payroll.html.includes('supported runtime / edition must be confirmed'));
+assert.ok(payroll.html.includes('Conditional: cloud exit'));
+assert.ok(!payroll.r.missing.includes('What is the assessor’s lifecycle-economic conclusion?'));
+assert.ok(JSON.stringify(payroll.sections).includes('technical proposal'));
+assert.ok(!JSON.stringify(payroll.sections).includes('No basis yet to choose local or cloud'));
+assert.equal(recommend({...base,economics:'unknown',cloud:'unknown'}).alternatives.length,0);
+assert.equal(recommend({...base,economics:'unknown',local:'yes'}).id,'ONPREM-CAAS');
+assert.ok(recommend({...base,economics:'unknown',exitStatus:'blocked'}).reasons.some(x=>x.includes('Excluded until')));
+assert.equal(recommend({...base,delivery:'modern',platform:'managed',economics:'unknown',exitStatus:'blocked'}).id,null);
+assert.ok(payroll.html.includes('economic component was not taken into consideration'));
+assert.ok(payroll.html.includes('Both local and cloud solutions are technically possible'));
+assert.ok(payroll.html.includes('Cloud exit pending — technical proposal only'));
