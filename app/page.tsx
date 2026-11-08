@@ -1,3 +1,3 @@
 export default function Home() {
-  return <iframe src="/studio/index.html?v=20261108-home-import" title="Workload Placement Studio" style={{display:'block',width:'100%',height:'100dvh',border:0}} />;
+  return <iframe src="/studio/index.html?v=20261108-answer-clarity" title="Workload Placement Studio" style={{display:'block',width:'100%',height:'100dvh',border:0}} />;
 }

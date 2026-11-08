@@ -56,3 +56,5 @@ textarea.suggested-needs{min-height:380px;line-height:1.6;resize:vertical}
 
 /* Home introduces the outcome; the profile uses the complete workspace width. */
 .profile-workspace{width:100%;min-width:0}.home-decisions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin-top:22px}.home-deliverables{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.home-upload-link{text-decoration:none}.home-intro .actions{justify-content:flex-start;flex-wrap:wrap}@media(max-width:700px){.home-decisions,.home-deliverables{grid-template-columns:1fr;gap:12px}.home-intro .actions{align-items:stretch;flex-direction:column}}
+
+.answer-meaning{margin-top:10px;padding:12px 14px;border-left:3px solid #358f82;background:#edf6f3;color:#304b48;font-size:14px;line-height:1.6}.answer-meaning strong{font-weight:600}
