@@ -23,7 +23,7 @@ assert.equal(recommend({...base,delivery:'package',platform:'self'}).id,'CLOUD-I
 assert.equal(recommend({...base,delivery:'modern',local:'yes',platform:'managed'}).id,null);
 assert.equal(recommend({...base,delivery:'package',local:'yes',platform:'private'}).id,'ONPREM-PRIVATE-CLOUD');
 assert.equal(recommend({...base,delivery:'package',platform:'private'}).id,'ONPREM-PRIVATE-CLOUD');
-assert.equal(recommend({...base,control:'unknown',skills:'strong'}).operative,null);
+assert.equal(recommend({...base,control:'unknown',skills:'strong'}).operative,'INTERNAL');
 assert.equal(recommend({...base,skills:'strong'}).operative,'INTERNAL');
 assert.equal(recommend({...base,skills:'limited'}).operative,'OUTSOURCED-MSP');
 assert.equal(recommend({...base,skills:'partial'}).operative,'CO-MANAGED');
@@ -72,9 +72,10 @@ for(const text of ['Placement','Proposed Operating model','Cloud candidate sugge
  assert.ok(JSON.stringify(recoveryCase.sections).includes(text),text+' visible in PDF sections');
 }
 for(const text of ['Comparable lifecycle costs','assessment period','Baseline demand','Peak demand','Scaling capability','Capacity assumptions'])assert.ok(recoveryCase.html.includes(text));
-for(const key of ['control','skills','sourcing'])assert.equal(recommend({...base,[key]:'unknown'}).operative,null);
+for(const key of ['control','skills'])assert.equal(recommend({...base,[key]:'unknown'}).operatingPending,true);
+assert.equal(recommend({...base,sourcing:'unknown'}).operative,'CO-MANAGED');
 assert.equal(recommend({...base,operatingEvidence:''}).operative,'CO-MANAGED','Optional supporting evidence must not suppress a proposal supported by the operating answers');
-assert.equal(recommend({...base,delivery:'saas',skills:'unknown'}).operative,null);
+assert.equal(recommend({...base,delivery:'saas',skills:'unknown'}).operative,'PROVIDER-OPERATED');
 for(const authority of ['A3','A4']){
  const test=renderCase({...base,embeddedAI:'yes',aiAuthority:authority,aiData:'local'});
  assert.equal(test.r.intendedAiAuthority,authority);
@@ -103,7 +104,7 @@ const noAi=renderCase({...base,aiInfrastructure:'none',embeddedAI:'none',aiAutho
 assert.ok(noAi.r.aiStatus.startsWith('Not applicable'));
 for(const key of ['aiInfrastructure','embeddedAI']){
  const test=renderCase({...base,aiInfrastructure:'none',embeddedAI:'none',aiAuthority:'none',[key]:'unknown'});
- assert.ok(test.r.aiStatus.startsWith('Unresolved'));assert.ok(test.r.outstanding.some(x=>x.category==='AI authority and data flows'));
+ assert.ok(test.r.aiStatus.startsWith('Pending confirmation'));assert.ok(test.r.outstanding.some(x=>x.category==='AI authority and data flows'));
  assert.ok(!vm.runInContext("questionApplies({key:'aiData'})",ctx),'Processing location waits until AI involvement is established');
 }
 for(const economics of ['cloud','local','similar']){

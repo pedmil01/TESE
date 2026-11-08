@@ -212,7 +212,7 @@ function recommendation(r=state.requirements){
     }else{
      if(r.platform==='managed')id='CLOUD-PAAS';
      else if(r.platform==='self')id='CLOUD-IAAS';
-     else if(r.platform==='private'&&!(aiWorkload&&r.aiData==='external')){id='ONPREM-PRIVATE-CLOUD';technicalOnly=true;elasticityBased=false;reasons.push('The supported private-cloud pattern is retained as the technical proposal. The cloud preference cannot be applied until a compatible external hosting pattern is confirmed.');checks.push('Confirm a supported external hosting pattern before applying the cloud economic or elasticity preference; reassess the comparison for that alternative.');}else checks.push('Cloud location is indicated, but only a private-cloud pattern is confirmed. Verify a supported external-cloud hosting pattern before assigning a zone.');
+     else if(r.platform==='private'&&!(aiWorkload&&r.aiData==='external')){id='ONPREM-PRIVATE-CLOUD';technicalOnly=true;elasticityBased=false;reasons.push('The supported private-cloud pattern is retained as the technical proposal. The cloud preference cannot be applied until a compatible external hosting pattern is confirmed.');checks.push('Confirm a supported external hosting pattern before applying the cloud economic or elasticity preference; reassess the comparison for that alternative.');}else {placementName='External processing — hosting platform to be confirmed';technicalOnly=true;reasons.push('External AI processing is established by the selected answer. The private-cloud hosting pattern does not establish a supported external runtime; confirm component boundaries and platform compatibility before final approval.');checks.push('Confirm a supported external hosting pattern or separate the external AI component from the main solution.');}
     }
     if(id){appliedRules.push('I3');reasons.push(technicalOnly?'The declared hosting pattern and operational-control preference provide a technical reference proposal; validation and comparison may change the final choice.':'The software delivery and confirmed platform compatibility select the service model within that location; they do not independently determine the location.');}
    }
@@ -240,8 +240,9 @@ function recommendation(r=state.requirements){
   if(r.control==='retain')conflict(['placement','operating'],'Provider-operated SaaS vs retained stack operations','SaaS provider operation conflicts with required internal execution of privileged / critical solution-stack operations. Clarify whether this requirement only concerns tenant administration.','Clarify whether retained control concerns tenant administration or the underlying stack. Retained stack execution requires a supported delivery alternative.',['delivery','control']);
   if(r.sourcing==='no')conflict(['placement','operating'],'Provider-operated SaaS vs sourcing prohibition','SaaS provider operation conflicts with the prohibition on external operational sourcing. Clarify and approve the sourcing boundary.','Confirm the approved sourcing scope with its owner. If provider operation is prohibited, assess a self-operated delivery alternative.',['delivery','sourcing']);
   if(issues.length>opConflictStart){placementConflicts.push(...issues.slice(opConflictStart));id=null;}
-  else if(opInputsKnown&&id){
+  else if(r.control&&r.skills&&r.sourcing){
    operative='PROVIDER-OPERATED';opReasons.push('The SaaS vendor operates the underlying stack. The stated internal capability and sourcing boundary support a proposed tenant administration / support arrangement, subject to validation.');
+   if(!opInputsKnown)opReasons.push('Provider operation follows from SaaS delivery. Institutional control, tenant administration, support capability and sourcing approval remain conditions to confirm.');
    if(['limited','partial'].includes(r.skills))support=r.sourcing==='yes'?'Managed administration / support':'Outtasked specialist administration / support';
   }
  }else if(opInputsKnown){
@@ -254,12 +255,19 @@ function recommendation(r=state.requirements){
   else if(['partial','limited'].includes(r.skills)&&r.sourcing==='specialist')conflict(['operating'],'Limited specialist sourcing vs internal capability gap','Specialist support cannot substitute for missing end-to-end internal operating capability. Confirm staffing and coverage.','Identify who covers the remaining operating scope. Build internal capability or obtain an approved broader sourcing boundary.',['skills','sourcing']);
   else if(['partial','limited'].includes(r.skills)&&r.sourcing==='no')conflict(['operating'],'Sourcing prohibition vs internal capability gap','External sourcing is prohibited but internal capacity is insufficient. Build internal operating capability before finalizing the model.','Build internal skills and coverage, or confirm an approved sourcing change. Identify an operator for every required responsibility before finalizing the model.',['skills','sourcing']);
  }
+ if(r.delivery!=='saas'&&!opInputsKnown&&['control','skills','sourcing'].every(key=>Boolean(r[key]))){
+  if(r.skills==='strong'||r.control==='retain'||r.sourcing==='no'){
+   operative='INTERNAL';opReasons.push('Internal operation is the conditional proposal supported by the declared internal capability, retained execution or sourcing prohibition. Confirm any unknown responsibility, capability, coverage and sourcing details before final approval.');
+  }else if(r.control==='shared'&&r.skills==='partial'&&r.sourcing==='unknown'){
+   operative='CO-MANAGED';opReasons.push('Shared responsibilities and partial internal capability suggest conditional co-management. External sourcing permission and coverage must be confirmed before final approval.');
+  }
+ }
  const operatingConflicts=issues.slice(opConflictStart);
  if(operatingConflicts.length)operative=null;
- if(!opInputsKnown)opReasons.push('Operating model unresolved: confirm required operational control, internal skills / coverage and sourcing permission.');
- if(operatingConflicts.length)opReasons.push('Operating model unresolved because the stated control, capability and sourcing requirements conflict.');
+ if(!opInputsKnown)opReasons.push('Operating conditions: confirm required operational control, internal skills / coverage and sourcing permission.');
+ if(operatingConflicts.length)opReasons.push('Operating requirements conflict: the stated control, capability and sourcing requirements are incompatible.');
  if(operative&&!informationProvided(r.operatingEvidence))opReasons.push('Validate the proposed operating scope, skills, staffing, coverage and lifecycle / recovery responsibilities. Supporting operating evidence remains outstanding.');
- if(!operative)support='Unresolved';
+ if(!operative)support='To be confirmed';
  if(r.recovery!=='yes')checks.push('Document RTO, RPO, trusted recovery, backup independence and dependency recovery order.');
  if(a.financialCriticality==='critical')checks.push('Financial / systemic criticality: validate service impact tolerance and recovery across the full financial-service dependency chain.');
  if(r.criticality==='high')checks.push('Demonstrate critical-service impact tolerance and end-to-end recovery; assess provider concentration and independent trusted recovery.');
@@ -282,11 +290,16 @@ function recommendation(r=state.requirements){
  if(placementConflicts.length){id=null;placementName=null;alternatives=[];technicalOnly=false;}
  const outstanding=outstandingRequirements(r,placementMissing,cloudExitRequired||alternatives.length>0);
  if(local&&r.hybrid==='no')for(const key of ['executionRestriction','sovereigntyRestriction'])if(!a[key]||a[key]==='unknown')outstanding.push({category:'Restriction confirmation',detail:profileOptions[key].label+' remains unconfirmed; the established local restriction determines the preliminary location.',targets:[profileTarget(key)]});
- if(placementName)outstanding.push({category:'Platform compatibility',detail:'The local location is established; confirm a supported hosting platform or runtime before final approval.',targets:[assessmentTarget('platform')]});
+ if(placementName)outstanding.push({category:'Platform compatibility',detail:'The execution location is established; confirm a supported hosting platform or runtime and component boundaries before final approval.',targets:[assessmentTarget('platform')]});
  for(const [value,label,target] of [[r.criticality,'Service criticality',assessmentTarget('criticality')],[a.financialCriticality,'Financial / systemic criticality',profileTarget('financialCriticality')]])if(!value||value==='unknown')outstanding.push({category:'Impact assessment',detail:label+' must be confirmed before final approval.',targets:[target]});
+ const placementAnswered=requiredPlacement.every(key=>Boolean(r[key]))&&['executionRestriction','sovereigntyRestriction'].every(key=>Boolean(a[key])||(local&&r.hybrid==='no'))&&(!aiInScope(r)||Boolean(r.aiData));
+ const operatingAnswered=['control','skills','sourcing'].every(key=>Boolean(r[key]));
+ const placementPending=!id&&!placementName&&!placementConflicts.length&&placementAnswered;
+ const operatingPending=!operative&&!operatingConflicts.length&&operatingAnswered;
+ const operatingConditional=Boolean(operative&&!opInputsKnown);
  const economicsBasis=economicBasis(r,elasticityBased);
- const aiStatus=aiNotApplicable(r)?'Not applicable — responses establish that no relevant AI capability is involved':aiInScope(r)?'Relevant AI capability identified; intended authority and controls require specialist validation':'Unresolved — AI applicability has not been established';
- return {placementName,technicalOnly,alternatives,id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id&&!placementName?'UNRESOLVED':technicalOnly?'TECHNICAL PLACEMENT PROPOSAL':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
+ const aiStatus=aiNotApplicable(r)?'Not applicable — responses establish that no relevant AI capability is involved':aiInScope(r)?'Relevant AI capability identified; intended authority and controls require specialist validation':'Pending confirmation — AI applicability has not been established';
+ return {placementPending,operatingPending,operatingConditional,placementName,technicalOnly,alternatives,id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id&&!placementName?(placementPending?'CONDITIONAL ASSESSMENT':'UNRESOLVED'):technicalOnly?'TECHNICAL PLACEMENT PROPOSAL':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
 }
 function go(i){hideAcronymTip();if(location.hash.startsWith('#acronym'))history.replaceState(null,'',location.pathname+location.search);step=i;render();window.scrollTo(0,0)}
 function answer(key,v){state.requirements[key]=v;if(key==='criticality')state.application.criticality=v;if(key==='demand')state.application.demandProfile=v;if(key==='hardware')state.application.hardwareNeed=v;syncSuggestedNeeds();if(step===1){syncAiQuestions();hideStatusTip();document.getElementById('live-proposal-content').innerHTML=proposal();enhanceAcronyms(document.getElementById('live-proposal-content'));const remaining=document.getElementById('remaining-requirements-notice');if(remaining)remaining.innerHTML=remainingRequirementsHtml();document.getElementById('progress').textContent=assessmentProgress().characterized;}else render()}
@@ -398,7 +411,7 @@ function proposal(){
  <p class="${r.elasticityBased?'economic-qualification':'meta'}">${esc(r.economicsBasis)}</p>
  ${r.intendedAiAuthority?`<p class="notice warning">Intended AI authority: ${esc(r.intendedAiAuthority)}. Recorded intent does not authorize execution. ${r.intendedAiAuthority==='A3'?'Explicit approval is required for each executed action.':r.intendedAiAuthority==='A4'?'An approved permitted-action boundary, least privilege, human oversight, auditability and effective suspension / recovery are required.':'Production changes remain human decisions.'}</p>`:''}
  ${outstandingHtml(r)}
- ${cloudExitHtml(r)}${fundingHtml()}<section class="recommendation-basis"><h3>Recommendation basis</h3>${list(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm the required inputs and supported architecture.'])}<p class="meta"><strong>Compatible delivery:</strong> ${esc(r.compatible)}</p><p class="meta"><strong>AI applicability:</strong> ${esc(r.aiStatus)}</p><p class="meta"><strong>Applied rules:</strong> ${r.appliedRules.map(esc).join(', ')} · <a href="#framework" onclick="event.preventDefault();go(3)">Recommendation method</a></p></section>
+ ${cloudExitHtml(r)}${fundingHtml()}<section class="recommendation-basis"><h3>Recommendation basis</h3>${list(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):[r.placementPending?'Assessment recorded. Confirm the stated location and architecture conditions before selecting a hosting arrangement.':'Placement unresolved. Complete the unanswered decision inputs.'])}<p class="meta"><strong>Compatible delivery:</strong> ${esc(r.compatible)}</p><p class="meta"><strong>AI applicability:</strong> ${esc(r.aiStatus)}</p><p class="meta"><strong>Applied rules:</strong> ${r.appliedRules.map(esc).join(', ')} · <a href="#framework" onclick="event.preventDefault();go(3)">Recommendation method</a></p></section>
  `;
 }
 function list(items){return items.length?`<ul class="help-list">${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="meta">No additional item identified from these answers.</p>'}

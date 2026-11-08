@@ -12,12 +12,12 @@ assert.equal(run({criticality:'unknown'},{financialCriticality:'unknown'}).r.id,
 assert.equal(run({criticality:'unknown'},{financialCriticality:'unknown'}).r.outstanding.filter(x=>x.category==='Impact assessment').length,2);
 const constrained=run({local:'yes',platform:'self',cloud:'unknown',proximity:'unknown',hardware:'unknown'},{executionRestriction:'unknown',sovereigntyRestriction:'unknown'});
 assert.equal(constrained.r.id,'ONPREM-TRAD');
-for(const key of ['delivery','cloud','hybrid','proximity','hardware'])assert.equal(run({[key]:'unknown'}).r.status,'UNRESOLVED',key);
-assert.equal(run({embeddedAI:'yes',aiData:'unknown'}).r.status,'UNRESOLVED');
+for(const key of ['delivery','cloud','hybrid','proximity','hardware'])assert.equal(run({[key]:'unknown'}).r.status,'CONDITIONAL ASSESSMENT',key);
+assert.equal(run({embeddedAI:'yes',aiData:'unknown'}).r.status,'CONDITIONAL ASSESSMENT');
 assert.equal(run({delivery:'ai',aiInfrastructure:'inference',aiData:'external',local:'yes'}).r.status,'REQUIREMENTS CONFLICT');
 assert.equal(run({exitStatus:'blocked'}).r.status,'REQUIREMENTS CONFLICT');
 assert.equal(run({delivery:'saas'}).r.status,'REQUIREMENTS CONFLICT');
-for(const key of ['control','skills','sourcing'])assert.equal(run({[key]:'unknown'}).r.operative,null);
+for(const key of ['control','skills','sourcing'])assert.equal(run({[key]:'unknown'}).r.operative,'INTERNAL');
 assert.equal(run({skills:'limited'}).r.operatingConflicts.length,1);
-const external=run({platform:'private',aiInfrastructure:'inference',aiData:'external'});assert.equal(external.r.id,null);assert.equal(external.r.status,'UNRESOLVED');
+const external=run({platform:'private',aiInfrastructure:'inference',aiData:'external'});assert.equal(external.r.id,null);assert.equal(external.r.placementName,'External processing — hosting platform to be confirmed');assert.equal(external.r.status,'TECHNICAL PLACEMENT PROPOSAL');
 console.log('Conditional placement: economics-independent exit handling, local location retention, supported private platform, impact gaps, essential unknowns, conflicts and report consistency passed.');

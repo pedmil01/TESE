@@ -62,14 +62,14 @@ const ruleTraceability=[
  {id:'C3',rule:'Require a feasible cloud exit with complete data access and a supported recovery, migration or replacement route. Block a confirmed impossible exit. Unconfirmed exit retains a preliminary technical proposal with an explicit condition to resolve exit before final decision or deployment, regardless of the economic answer.',type:'Direct cloud-exit constraint',limit:'Applies to external cloud, SaaS and hybrid cloud components. Recorded plans and test claims require specialist validation; same-provider backup alone does not demonstrate exit.'},
  {id:'C1',rule:'Enforce declared local execution, external-processing prohibitions, sovereignty and hard proximity / hardware restrictions; block incompatible SaaS or hybrid arrangements.',type:'Direct constraint enforcement',limit:'Enforces declarations only. Specialist evidence is still required for eligibility.'},
  {id:'C2',rule:'Enforce AI processing restrictions and flag contradictory AI answers.',type:'Direct constraint enforcement',limit:'Unknown relevant flows withhold placement. Processing location applies to AI workloads or enabled / planned embedded AI; operational authority applies only to enabled / planned embedded AI.'},
- {id:'I1',rule:'Withhold placement only when missing location, architecture or relevant AI-flow inputs prevent a technical conclusion. Retain an established local location when the platform is pending; criticality and evidence gaps remain approval conditions.',type:'Tool interpretation / information threshold',limit:'The questionnaire threshold is introduced for the demonstrator; it is not mandatory eligibility validation.'},
+ {id:'I1',rule:'Withhold placement only when missing location, architecture or relevant AI-flow inputs prevent a technical conclusion. Retain an established local location when the platform is pending; criticality and evidence gaps remain approval conditions.',type:'Tool interpretation / information threshold',limit:'Explicit Unknown / Not confirmed answers produce a conditional assessment with actionable confirmation requirements. Unresolved is reserved for unanswered decision inputs; no location is invented from uncertainty.'},
  {id:'I2',rule:'Map SaaS-only delivery to cloud SaaS and an intentional local / cloud split to hybrid composition when restrictions permit.',type:'Tool interpretation / catalog mapping',limit:'Compatibility and component boundaries remain subject to specialist validation.'},
  {id:'I3',rule:'Map a selected location and declared software support to CaaS, IaaS, PaaS, private cloud, traditional or specialized AI infrastructure.',type:'Tool interpretation / catalog mapping',limit:'No independent product-support or platform evidence verification.'},
  {id:'I4',rule:'Use an explicit AI workload processing location as a location differentiator, subject to execution restrictions.',type:'Tool interpretation / location inference',limit:'AI involvement alone does not mandate on-premises placement.'},
  {id:'I5',rule:'Use an assessor-supplied lifecycle-economic preference when location is flexible; retain the evidence obligation.',type:'Tool interpretation / assessor conclusion',limit:'Does not calculate TCO or establish superiority; requires a common period, comparable scope and documented demand assumptions.'},
  {id:'I6',rule:'Suggest a cloud candidate for elastic demand when restrictions permit and no economic preference resolves location.',type:'Tool interpretation / elasticity heuristic',limit:'Introduced specifically for this tool. Elasticity does not establish economic suitability.'},
  {id:'I7',rule:'Propose a technical reference placement when economics is unavailable or inconclusive: managed runtimes favor cloud PaaS; supported self-managed / private patterns favor local; containers / AI favor local unless execution may be delegated. Record both options and validation conditions.',type:'Tool interpretation / conservative fallback',limit:'This is a planning convention, not evidence of technical or economic superiority. Unknown exit evidence remains a pre-deployment condition for every preliminary proposal; confirmed conflicts still block it.'},
- {id:'I8',rule:'Suggest internal, co-managed, managed or provider operation from control, skills and sourcing; unresolved inputs or capability conflicts leave the operating model unresolved.',type:'Tool interpretation / operating-model mapping',limit:'Institutional accountability remains internal; SaaS tenant administration and support still require capability information.'},
+ {id:'I8',rule:'Retain supported internal, co-managed, managed or provider operation from the answers. Explicit unknowns are confirmation conditions; incompatible requirements are conflicts. If no operator is established, report a conditional assessment. Reserve Unresolved for unanswered decision inputs.',type:'Tool interpretation / operating-model mapping',limit:'Institutional accountability remains internal; SaaS tenant administration and support still require capability information.'},
  {id:'V1',rule:'Keep recovery, security, sovereignty, operating and economic gaps visible; criticality strengthens review obligations without an automatic cloud ban.',type:'Specialist validation obligation',limit:'Missing information is distinct from confirmed conflicts. Mandatory validation remains outside the questionnaire.'},
  {id:'V2',rule:'Record intended A0–A4 authority and proportionate controls without granting authorization.',type:'Specialist validation obligation',limit:'A3 requires action approval; A4 requires an approved boundary, least privilege, oversight, auditability and suspension / recovery.'}
 ];
@@ -116,8 +116,8 @@ function outstandingRequirements(r,placementMissing=[],exitRequired=false){
 }
 function decisionStatuses(r){
  return [
-  ['Placement',r.placementConflicts.length?'Requirements conflict':(r.placementName||(r.id?(model.zones.find(z=>z.id===r.id)?.name+(r.technicalOnly?' — technical proposal':'')):'Unresolved'))],
-  ['Proposed Operating model',r.operatingConflicts.length?'Requirements conflict':model.operations.find(o=>o.id===r.operative)?.name||'Unresolved']
+  ['Placement',r.placementConflicts.length?'Requirements conflict':(r.placementName||(r.id?(model.zones.find(z=>z.id===r.id)?.name+(r.technicalOnly?' — technical proposal':'')):(r.placementPending?'Conditional assessment — location / architecture confirmation required':'Unresolved')))],
+  ['Proposed Operating model',r.operatingConflicts.length?'Requirements conflict':(r.operative?model.operations.find(o=>o.id===r.operative)?.name+(r.operatingConditional?' — conditional proposal':''):(r.operatingPending?'Conditional assessment — operating responsibilities to be confirmed':'Unresolved'))]
  ];
 }
 function statusExplanation(kind,r=recommendation()){
@@ -131,7 +131,7 @@ function statusExplanation(kind,r=recommendation()){
  }else if(kind==='operating'){
   reasons.push(...r.opReasons,...r.operatingConflicts);
   reasons.push(...r.outstanding.filter(item=>item.category==='Operating capability').map(item=>item.detail));
-  if(state.requirements.delivery==='saas'&&!r.id)reasons.push('A SaaS operating arrangement cannot be proposed until its placement requirements and provider / institutional responsibility boundary are resolved.');
+  if(state.requirements.delivery==='saas'&&!r.id&&!r.operative)reasons.push('A SaaS operating arrangement cannot be proposed until its placement requirements and provider / institutional responsibility boundary are resolved.');
   if(!reasons.length)reasons.push('The answers do not establish a compatible operational-control, capability and sourcing arrangement. Confirm the operating scope and responsibility boundaries.');
  }else if(kind==='eligibility'){
   reasons.push('Mandatory eligibility validation is outside this questionnaire. Infrastructure specialists, solution owners and relevant subject-matter experts have not validated the proposed arrangement through this tool. Supplying every answer does not confirm eligibility.');
@@ -242,7 +242,7 @@ function decisionDiagnostics(kind,r=recommendation()){
  if(kind==='operating'&&!r.operative){
   const keys=['control','skills','sourcing'].filter(key=>!state.requirements[key]||state.requirements[key]==='unknown');
   if(keys.length)items.push(decisionDiagnostic(['operating'],'Operating decision inputs need confirmation','The proposed operating model needs confirmed operational control, internal skills / coverage and sourcing permission.','Confirm only the listed unanswered operating inputs. Supporting evidence can be added separately for specialist validation.',keys));
-  if(state.requirements.delivery==='saas'&&!r.id){
+  if(state.requirements.delivery==='saas'&&!r.id&&!r.operative){
    const placementTargets=r.conflictDetails.filter(item=>item.kinds.includes('placement')).flatMap(item=>item.targets);
    items.push(decisionDiagnostic(['operating'],'SaaS operation depends on a compatible placement','A SaaS operating arrangement cannot be proposed until its placement requirements and provider / institutional responsibility boundary are resolved.','Resolve the placement blockers shown above, then confirm the provider and tenant-administration responsibilities.',[],[],state.requirements,placementTargets.length?placementTargets:placementResolutionTargets(r)));
   }
@@ -254,17 +254,17 @@ function diagnosticHtml(item){return `<article class="decision-diagnostic"><h4>$
 function decisionGuidanceHtml(r){
  const conflicts=r.conflictDetails;
  const unresolved=['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved'));
- return `${conflicts.length?`<section class="proposal-conflicts" aria-label="Confirmed requirement conflicts"><h3>Confirmed requirement conflicts</h3>${conflicts.map(diagnosticHtml).join('')}</section>`:''}${unresolved.length?`<section class="proposal-unresolved" aria-label="Why decisions are unresolved"><h3>What is unresolved and how to resolve it</h3>${unresolved.map(item=>diagnosticHtml({...item,title:(item.kinds.includes('placement')?'Placement: ':'Operating model: ')+item.title})).join('')}</section>`:''}`;
+ return `${conflicts.length?`<section class="proposal-conflicts" aria-label="Confirmed requirement conflicts"><h3>Confirmed requirement conflicts</h3>${conflicts.map(diagnosticHtml).join('')}</section>`:''}${unresolved.length?`<section class="proposal-unresolved" aria-label="Why decisions are unresolved"><h3>Conditions and next steps</h3>${unresolved.map(item=>diagnosticHtml({...item,title:(item.kinds.includes('placement')?'Placement: ':'Operating model: ')+item.title})).join('')}</section>`:''}`;
 }
 function diagnosticReportLines(item){return [item.title,...item.answers.map(answer=>answer.label+' — selected: '+answer.answer),'Why: '+item.detail,'How to resolve: '+item.action];}
 function statusExplanationHtml(kind,r=recommendation()){return kind==='placement'||kind==='operating'?statusExplanationItems(kind,r).map(diagnosticHtml).join(''):`<ul>${statusExplanationItems(kind,r).map(item=>`<li>${esc(item.detail)}${resolutionLinks(item.targets)}</li>`).join('')}</ul>`;}
 function statusFields(r){
  const kinds={'Placement':'placement','Proposed Operating model':'operating'};
  return `<dl class="decision-statuses">${decisionStatuses(r).map(([label,value])=>{
-  const kind=kinds[label],blocked=kind&&(value.startsWith('Unresolved')||value==='Requirements conflict'),conflict=value==='Requirements conflict';
-  const text=blocked?`<button type="button" class="status-explanation-trigger" data-status-kind="${kind}" data-status-state="${conflict?'conflict':'unresolved'}" aria-label="${conflict?'Explain the '+esc(label.toLowerCase())+' conflict':'Why '+esc(label.toLowerCase())+' is unresolved'}" aria-expanded="false" aria-haspopup="dialog" aria-controls="status-explanation-tooltip">${esc(value)}<span class="status-help-icon" aria-hidden="true">?</span></button>`:esc(value);
+  const kind=kinds[label],blocked=kind&&(value.startsWith('Unresolved')||value.startsWith('Conditional assessment')||value.endsWith('conditional proposal')||value==='Requirements conflict'),conflict=value==='Requirements conflict';
+  const text=blocked?`<button type="button" class="status-explanation-trigger" data-status-kind="${kind}" data-status-state="${conflict?'conflict':'unresolved'}" aria-label="${conflict?'Explain the '+esc(label.toLowerCase())+' conflict':'Explain conditions for '+esc(label.toLowerCase())}" aria-expanded="false" aria-haspopup="dialog" aria-controls="status-explanation-tooltip">${esc(value)}<span class="status-help-icon" aria-hidden="true">?</span></button>`:esc(value);
   return `<div><dt>${esc(label)}</dt><dd class="${conflict?'conflict-value':''}">${text}</dd></div>`;
- }).join('')}</dl><p class="meta">Conflict and unresolved statuses show their causes below. Tap a status for its explanation, then follow a link to review the relevant answer. Placement and operating proposals are assessed separately. All proposals require specialist validation and institutional approval.</p>`;
+ }).join('')}</dl><p class="meta">Conditional, conflict and unresolved statuses show their causes below. Tap a status for its explanation, then follow a link to review the relevant answer. Placement and operating proposals are assessed separately. All proposals require specialist validation and institutional approval.</p>`;
 }
 function outstandingHtml(r){
  const categories=[...new Set(r.outstanding.map(x=>x.category))];

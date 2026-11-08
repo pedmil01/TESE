@@ -17,11 +17,11 @@ function reportSections(){
    ...enteredPair('Institutional service owner',a.owner),
    ...decisionStatuses(r).map(([label,value])=>pair(label,value)),
    ...r.conflictDetails.map(item=>'Conflict: '+item.title+'. '+item.answers.map(answer=>answer.label.split('. ')[0]+': '+answer.answer).join(' | ')),
-   ...['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').map(item=>(kind==='placement'?'Placement':'Operating model')+' unresolved: '+item.detail)),
+   ...['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').map(item=>(kind==='placement'?'Placement':'Operating model')+' conditions: '+item.detail)),
    'Placement and the proposed operating model are preliminary recommendations. Outstanding requirements require specialist validation; final decisions require institutional approval.'
   ]],
   ['Confirmed requirement conflicts',r.conflictDetails.length?r.conflictDetails.flatMap(diagnosticReportLines):['No confirmed conflict identified by the current rules. This does not establish that mandatory requirements are satisfied.']],
-  ...(['placement','operating'].some(kind=>decisionDiagnostics(kind,r).some(item=>item.type==='unresolved'))?[['Unresolved decisions — causes and next steps',['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').flatMap(item=>diagnosticReportLines({...item,title:(kind==='placement'?'Placement: ':'Operating model: ')+item.title})))]]:[]),
+  ...(['placement','operating'].some(kind=>decisionDiagnostics(kind,r).some(item=>item.type==='unresolved'))?[['Decision conditions — causes and next steps',['placement','operating'].flatMap(kind=>decisionDiagnostics(kind,r).filter(item=>item.type==='unresolved').flatMap(item=>diagnosticReportLines({...item,title:(kind==='placement'?'Placement: ':'Operating model: ')+item.title})))]]:[]),
   ...(typeof aiReportSection==='function'?[aiReportSection()]:[]),
   ...(r.cloudExit.required||evidenceFields.some(f=>f.group==='exit'&&hasText(requirements[f.key]))?[['Cloud exit and data recovery',[
    pair('Cloud exit readiness',r.cloudExit.label),r.cloudExit.detail,
@@ -35,7 +35,7 @@ function reportSections(){
    'Finance and procurement must validate the funding scope, recurring affordability, purchasing route and delivery schedule. A budget entry or AI recommendation does not authorize spending or deployment.'
   ]],
   ['Recommendation basis',[
-   ...(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):['Placement unresolved. Confirm required inputs, restrictions and supported architecture.']),
+   ...(r.reasons.length?r.reasons.filter(x=>x!==r.economicsBasis):[r.placementPending?'Assessment recorded. Confirm the stated location and architecture conditions before selecting a hosting arrangement.':'Placement unresolved. Complete the unanswered decision inputs.']),
    r.economicsBasis,
    pair('Compatible delivery',r.compatible),
    pair('AI applicability',r.aiStatus),
