@@ -142,7 +142,7 @@ function field(key,label,obj='application',area=false){
 }
 function recommendation(r=state.requirements){
  r=activeRequirements(r);
- let technicalOnly=false,alternatives=[],id=null,reasons=[],issues=[],conflictDetails=[],checks=[],operative=null,support='None proposed',opReasons=[],appliedRules=['C1','C2','I1','V1','V2'],elasticityBased=false;
+ let placementName=null,technicalOnly=false,alternatives=[],id=null,reasons=[],issues=[],conflictDetails=[],checks=[],operative=null,support='None proposed',opReasons=[],appliedRules=['C1','C2','I1','V1','V2'],elasticityBased=false;
  const conflict=(kinds,title,detail,action,keys,profileKeys=[])=>{issues.push(detail);conflictDetails.push({...decisionDiagnostic(kinds,title,detail,action,keys,profileKeys,r),type:'conflict'});};
  const missing=assessmentProgress(r).missing.map(q=>q.label);
  const known=key=>Boolean(r[key]&&r[key]!=='unknown');
@@ -160,10 +160,12 @@ function recommendation(r=state.requirements){
  const local=constraints.length>0;
  const localKeys=[...(aiWorkload&&r.aiData==='local'?['aiData']:[]),...(r.local==='yes'?['local']:[]),...(r.cloud==='no'?['cloud']:[]),...(r.proximity==='hard'?['proximity']:[]),...(r.hardware==='local'?['hardware']:[])];
  const localProfileKeys=['executionRestriction','sovereigntyRestriction'].filter(key=>a[key]==='local');
- const requiredPlacement=['delivery','local','cloud','hybrid','proximity','hardware','criticality'];
- if(['package','modern'].includes(r.delivery))requiredPlacement.push('platform');
+ const requiredPlacement=['delivery','hybrid',...(local&&r.hybrid==='no'?[]:['local','cloud','proximity','hardware'])];
+ if(['package','modern'].includes(r.delivery)&&!local)requiredPlacement.push('platform');
  const placementMissing=requiredPlacement.filter(key=>!known(key)).map(key=>questions.find(q=>q.key===key).label);
- for(const key of ['financialCriticality','executionRestriction','sovereigntyRestriction'])if(!a[key]||a[key]==='unknown')placementMissing.push(profileOptions[key].label);
+ for(const key of ['executionRestriction','sovereigntyRestriction'])if((!a[key]||a[key]==='unknown')&&!(local&&r.hybrid==='no'))placementMissing.push(profileOptions[key].label);
+ for(const [value,label] of [[r.criticality,'Service criticality'],[a.financialCriticality,'Financial / systemic criticality']])if(!value||value==='unknown'){technicalOnly=true;reasons.push(label+' is pending. The technical placement is retained; impact, assurance and recovery requirements must be established before final approval.');checks.push('Confirm '+label.toLowerCase()+' with the service owner before final approval.');}
+ if(local&&r.hybrid==='no')for(const key of ['local','cloud','proximity','hardware'])if(!known(key))checks.push('Confirm '+questions.find(q=>q.key===key).label+' The established local restriction already determines the proposed execution location.');
  if(aiInScope(r)&&(!r.aiData||r.aiData==='unknown'))placementMissing.push('AI data flows and processing location');
  reasons.push(...constraints.map(reason=>reason+' constrains execution to the local environment.'));
  if(r.delivery==='saas'&&local)conflict(['placement'],'Vendor-hosted SaaS vs local execution constraints','SaaS-only delivery conflicts with the stated local execution, cloud, proximity or hardware constraint. A supported alternative or an approved change to the requirement is needed.','Select a supported locally deployable edition or alternative. Change a mandatory constraint only if the responsible institutional authority has approved it.',['delivery',...localKeys],localProfileKeys);
@@ -206,11 +208,11 @@ function recommendation(r=state.requirements){
     else if(location==='local'){
      if(r.platform==='private')id='ONPREM-PRIVATE-CLOUD';
      else if(r.platform==='self')id='ONPREM-TRAD';
-     else checks.push('A local location is indicated, but managed-runtime support does not prove a supported local deployment. Confirm a local platform or self-managed edition.');
+     else {placementName='On-premises — platform to be confirmed';technicalOnly=true;reasons.push('Local execution is established. The hosting platform remains to be confirmed; managed-runtime support does not prove a supported local edition.');checks.push('Confirm a supported local platform / runtime or self-managed edition before final approval.');}
     }else{
      if(r.platform==='managed')id='CLOUD-PAAS';
      else if(r.platform==='self')id='CLOUD-IAAS';
-     else checks.push('Cloud location is indicated, but only a private-cloud pattern is confirmed. Verify a supported external-cloud hosting pattern before assigning a zone.');
+     else if(r.platform==='private'&&!(aiWorkload&&r.aiData==='external')){id='ONPREM-PRIVATE-CLOUD';technicalOnly=true;elasticityBased=false;reasons.push('The supported private-cloud pattern is retained as the technical proposal. The cloud preference cannot be applied until a compatible external hosting pattern is confirmed.');checks.push('Confirm a supported external hosting pattern before applying the cloud economic or elasticity preference; reassess the comparison for that alternative.');}else checks.push('Cloud location is indicated, but only a private-cloud pattern is confirmed. Verify a supported external-cloud hosting pattern before assigning a zone.');
     }
     if(id){appliedRules.push('I3');reasons.push(technicalOnly?'The declared hosting pattern and operational-control preference provide a technical reference proposal; validation and comparison may change the final choice.':'The software delivery and confirmed platform compatibility select the service model within that location; they do not independently determine the location.');}
    }
@@ -226,8 +228,7 @@ function recommendation(r=state.requirements){
    item.answers.push(diagnosticReference(evidenceTarget('exitStatus'),r));
    conflictDetails.push({...item,type:'conflict'});id=null;
   }else if(cloudExit.missing.length){
-   if(technicalOnly){cloudExit.label='Cloud exit pending — technical proposal only';cloudExit.detail='The cloud placement is a preliminary technical proposal. Exit feasibility and the required data, recovery / migration, destination and contractual details must be confirmed before a final decision or deployment.';}
-   else {placementMissing.push(...cloudExit.missing.map(f=>f.label));id=null;}
+   technicalOnly=true;cloudExit.label='Cloud exit pending — technical proposal only';cloudExit.detail='The cloud placement is a preliminary technical proposal. Exit feasibility and the required data, recovery / migration, destination and contractual details must be confirmed before a final decision or deployment.';
   }
   checks.push('Cloud exit — validate complete data export / independent access, a supported restore, migration or replacement route, destination capacity and controls, timing, costs, contract rights, owners and test evidence. A backup confined to the same provider does not establish exit.');
  }
@@ -278,11 +279,14 @@ function recommendation(r=state.requirements){
  }
  checks.push('Finance and procurement must validate upfront purchase funding, sustainable recurring payments, supplier / contract terms and acquisition lead times. A lower lifecycle cost does not establish affordability or purchasing approval.');
  checks.push(...mandatoryGates.map(g=>'Before institutional approval: '+g.label+'. '+g.hint));
- if(placementConflicts.length){id=null;alternatives=[];technicalOnly=false;}
+ if(placementConflicts.length){id=null;placementName=null;alternatives=[];technicalOnly=false;}
  const outstanding=outstandingRequirements(r,placementMissing,cloudExitRequired||alternatives.length>0);
+ if(local&&r.hybrid==='no')for(const key of ['executionRestriction','sovereigntyRestriction'])if(!a[key]||a[key]==='unknown')outstanding.push({category:'Restriction confirmation',detail:profileOptions[key].label+' remains unconfirmed; the established local restriction determines the preliminary location.',targets:[profileTarget(key)]});
+ if(placementName)outstanding.push({category:'Platform compatibility',detail:'The local location is established; confirm a supported hosting platform or runtime before final approval.',targets:[assessmentTarget('platform')]});
+ for(const [value,label,target] of [[r.criticality,'Service criticality',assessmentTarget('criticality')],[a.financialCriticality,'Financial / systemic criticality',profileTarget('financialCriticality')]])if(!value||value==='unknown')outstanding.push({category:'Impact assessment',detail:label+' must be confirmed before final approval.',targets:[target]});
  const economicsBasis=economicBasis(r,elasticityBased);
  const aiStatus=aiNotApplicable(r)?'Not applicable — responses establish that no relevant AI capability is involved':aiInScope(r)?'Relevant AI capability identified; intended authority and controls require specialist validation':'Unresolved — AI applicability has not been established';
- return {technicalOnly,alternatives,id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id?'UNRESOLVED':technicalOnly?'TECHNICAL PLACEMENT PROPOSAL':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
+ return {placementName,technicalOnly,alternatives,id,indicatedId:id,cloudExit,cyberChecks:infrastructureSecurity(r),reasons,issues,conflictDetails,placementConflicts,operatingConflicts,checks,missing,placementMissing,compatible,operative,support,opReasons,outstanding,economicsBasis,elasticityBased:elasticityBased&&Boolean(id),aiStatus,intendedAiAuthority:/^A[0-4]$/.test(r.aiAuthority||'')?r.aiAuthority:null,appliedRules:[...new Set(appliedRules)],status:placementConflicts.length?'REQUIREMENTS CONFLICT':!id&&!placementName?'UNRESOLVED':technicalOnly?'TECHNICAL PLACEMENT PROPOSAL':'PLACEMENT PROPOSAL',eligibility:'Unresolved — specialist validation required.',approval:'Pending institutional approval.'};
 }
 function go(i){hideAcronymTip();if(location.hash.startsWith('#acronym'))history.replaceState(null,'',location.pathname+location.search);step=i;render();window.scrollTo(0,0)}
 function answer(key,v){state.requirements[key]=v;if(key==='criticality')state.application.criticality=v;if(key==='demand')state.application.demandProfile=v;if(key==='hardware')state.application.hardwareNeed=v;syncSuggestedNeeds();if(step===1){syncAiQuestions();hideStatusTip();document.getElementById('live-proposal-content').innerHTML=proposal();enhanceAcronyms(document.getElementById('live-proposal-content'));const remaining=document.getElementById('remaining-requirements-notice');if(remaining)remaining.innerHTML=remainingRequirementsHtml();document.getElementById('progress').textContent=assessmentProgress().characterized;}else render()}

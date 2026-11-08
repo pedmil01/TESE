@@ -7,7 +7,7 @@ const base={delivery:'container',criticality:'medium',local:'no',cloud:'yes',hyb
 const plan={exitStatus:'documented',exitData:'Full independent export of records, metadata, configuration and required key access; integrity reconciled',exitRecovery:'Portable encrypted backups and restore into a supported alternate runtime; exercise scheduled',exitDestination:'Approved alternate provider with capacity and controls; 8-hour cutover and 15-minute data-loss target',exitTerms:'Export and assistance rights, egress budget, notice and deletion obligations; service and procurement owners'};
 const run=code=>vm.runInContext(code,ctx);
 function check(values){ctx.input={...base,...values};return run('state.requirements=input;recommendation()');}
-let r=check({});assert.equal(r.id,null);assert.equal(r.status,'UNRESOLVED');assert.equal(r.cloudExit.required,true);assert.equal(r.cloudExit.missing.length,5);
+let r=check({});assert.equal(r.id,'CLOUD-CAAS');assert.equal(r.status,'TECHNICAL PLACEMENT PROPOSAL');assert.equal(r.cloudExit.required,true);assert.equal(r.cloudExit.missing.length,5);
 for(const key of ['exitStatus','exitData','exitRecovery','exitDestination','exitTerms']){
  const detail=r.cloudExit.missing.find(f=>f.key===key).label;
  ctx.detail=detail;assert.equal(run("requirementTargets('Placement inputs',detail)[0].id"),'evidence-'+key);
@@ -16,7 +16,7 @@ r=check({...plan,exitStatus:'blocked'});assert.equal(r.id,null);assert.equal(r.s
 const conflict=r.conflictDetails.find(x=>x.title==='Cloud arrangement vs impossible provider exit');assert.ok(conflict);assert.ok(conflict.answers.some(x=>x.answer.includes('No feasible exit')));assert.ok(conflict.targets.some(t=>t.id==='evidence-exitRecovery'));
 r=check(plan);assert.equal(r.id,'CLOUD-CAAS');assert.match(r.cloudExit.label,/demonstration required/);assert.ok(r.outstanding.some(x=>x.category==='Cloud exit and reversibility'&&x.detail.startsWith('Demonstrate')));
 for(const key of ['exitData','exitRecovery','exitDestination','exitTerms']){
- r=check({...plan,[key]:''});assert.equal(r.id,null,key+' is necessary for feasible cloud exit');assert.equal(r.status,'UNRESOLVED');
+ r=check({...plan,[key]:''});assert.equal(r.id,'CLOUD-CAAS',key+' remains an approval condition');assert.equal(r.status,'TECHNICAL PLACEMENT PROPOSAL');assert.ok(r.cloudExit.missing.some(f=>f.key===key));
 }
 r=check({...plan,exitStatus:'tested'});assert.equal(r.id,'CLOUD-CAAS');assert.match(r.cloudExit.detail,/do not independently verify/);
 for(const values of [{delivery:'saas'},{hybrid:'yes'},{delivery:'package',platform:'self'},{delivery:'modern',platform:'managed'}]){
@@ -31,4 +31,4 @@ check({});items=run("reportSections().find(([title])=>title==='Cloud exit and da
 const catalog=JSON.parse(fs.readFileSync('lib/ai-intake-catalog.json','utf8'));
 for(const key of Object.keys(plan))assert.ok(catalog.find(f=>f.field==='requirements.'+key));
 assert.ok(catalog.find(f=>f.field==='requirements.exitStatus').options.tested);
-console.log('Cloud exit checks passed: blocked / unknown / incomplete plans withhold cloud and hybrid; documented / tested plans require validation; local placement is independent; diagnostics link exact evidence, PDF omits blank text and AI ingestion includes the exit plan.');
+console.log('Cloud exit checks passed: blocked plans prevent cloud; unknown / incomplete plans retain conditional technical proposals; documented / tested plans require validation; local placement is independent; diagnostics link exact evidence, PDF omits blank text and AI ingestion includes the exit plan.');

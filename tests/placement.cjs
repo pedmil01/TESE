@@ -22,7 +22,7 @@ assert.equal(recommend({...base,delivery:'modern',platform:'managed'}).id,'CLOUD
 assert.equal(recommend({...base,delivery:'package',platform:'self'}).id,'CLOUD-IAAS');
 assert.equal(recommend({...base,delivery:'modern',local:'yes',platform:'managed'}).id,null);
 assert.equal(recommend({...base,delivery:'package',local:'yes',platform:'private'}).id,'ONPREM-PRIVATE-CLOUD');
-assert.equal(recommend({...base,delivery:'package',platform:'private'}).id,null);
+assert.equal(recommend({...base,delivery:'package',platform:'private'}).id,'ONPREM-PRIVATE-CLOUD');
 assert.equal(recommend({...base,control:'unknown',skills:'strong'}).operative,null);
 assert.equal(recommend({...base,skills:'strong'}).operative,'INTERNAL');
 assert.equal(recommend({...base,skills:'limited'}).operative,'OUTSOURCED-MSP');
@@ -139,7 +139,8 @@ const noDifferentiator=explanations({...base,economics:'unknown',demand:'steady'
 assert.ok(noDifferentiator.html.includes('technical proposal'));
 assert.ok(!noDifferentiator.html.includes('data-status-kind="placement"'));
 const platformGap=explanations({...base,delivery:'modern',platform:'managed',local:'yes'});
-assert.ok(platformGap.placement.some(x=>x.includes('supported local deployment')));
+assert.ok(platformGap.html.includes('On-premises — platform to be confirmed'));
+assert.ok(!platformGap.html.includes('data-status-kind="placement"'));
 const missingSkills=explanations({...base,skills:'unknown',operatingEvidence:''});
 assert.ok(missingSkills.operating.some(x=>x.includes('skills / coverage')));
 assert.ok(missingSkills.html.includes('data-status-kind="operating"'));
